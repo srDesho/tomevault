@@ -1,0 +1,56 @@
+# Compiled output files
+/target/
+/.mvn/wrapper/target/
+*.war
+*.jar
+
+# IDE configuration files
+*.iml
+.idea/
+.vscode/
+
+# Log files
+*.log
+logs/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Environment-specific configuration files (sensitive data)
+application-local.properties
+application-dev.properties
+application-prod.properties
+*.keystore
+
+# Build files from other IDEs (if used)
+/bin/
+/build/
+
+# Maven cache files
+/.m2/
+
+# Gradle cache files (if using Gradle)
+/.gradle/
+/build/
+
+# Heroku configuration files (if using Heroku)
+Procfile
+
+# Cloud Foundry configuration files (if using Cloud Foundry)
+manifest.yml
+
+# NetBeans configuration files (if using NetBeans)
+/nbproject/private/
+
+# Eclipse configuration files (if using Eclipse)
+/.settings/
+/.classpath
+/.project
+
+# IntelliJ IDEA project files
+*.ipr
+*.iws
+
+# Node.js dependencies (if using Node.js for frontend)
+node_modules/
