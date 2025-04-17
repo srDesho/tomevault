@@ -1,4 +1,4 @@
-package com.cristianml.TomeVault.service;
+package com.cristianml.TomeVault.service.impl;
 
 import com.cristianml.TomeVault.dto.request.BookRequestDTO;
 import com.cristianml.TomeVault.dto.response.BookResponseDTO;
@@ -6,23 +6,28 @@ import com.cristianml.TomeVault.entity.BookEntity;
 import com.cristianml.TomeVault.entity.UserEntity;
 import com.cristianml.TomeVault.mapper.BookMapper;
 import com.cristianml.TomeVault.repository.BookRepository;
+import com.cristianml.TomeVault.service.IBookService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
-public class BookService {
+public class BookServiceImpl implements IBookService {
 
     private final BookRepository bookRepository;
     private final BookMapper bookMapper;
 
-    public Page<BookResponseDTO> getBookByUser(UserEntity userEntity, Pageable pageable) {
-        Page<BookEntity> books = this.bookRepository.findAllByUserEntity(userEntity, pageable);
+    @Override
+    public Page<BookResponseDTO> getBooksByUser(UserEntity userEntity, Pageable pageable) {
+        Page<BookEntity> books = this.bookRepository.findAllByUser(userEntity, pageable);
         return books.map(bookMapper::toResponseDTO);
     }
 
+    @Override
     public BookResponseDTO saveBook(BookRequestDTO bookRequestDTO, UserEntity userEntity) {
         BookEntity bookEntity = this.bookMapper.toEntity(bookRequestDTO);
         bookEntity.setUser(userEntity);
@@ -30,14 +35,16 @@ public class BookService {
         return bookMapper.toResponseDTO(saved);
     }
 
+    @Override
     public void deleteBook(Long bookId, UserEntity userEntity) {
-        BookEntity delete = bookRepository.findByIdAndUserEntity(bookId, userEntity)
+        BookEntity delete = bookRepository.findByIdAndUser(bookId, userEntity)
                 .orElseThrow(() -> new RuntimeException("Book not found or does not belong to the user."));
         this.bookRepository.delete(delete);
     }
 
+    @Override
     public BookResponseDTO updateBook(Long bookId, BookRequestDTO bookRequestDTO, UserEntity userEntity) {
-        BookEntity existing = this.bookRepository.findByIdAndUserEntity(bookId, userEntity)
+        BookEntity existing = this.bookRepository.findByIdAndUser(bookId, userEntity)
                 .orElseThrow(() -> new RuntimeException("Book not found or does not belong to the user."));
         // Update fields
         existing.setTitle(bookRequestDTO.getTitle());
@@ -49,4 +56,13 @@ public class BookService {
         return bookMapper.toResponseDTO(updated);
     }
 
+    @Override
+    public BookResponseDTO saveBookFromGoogle(String googleBookId, UserEntity user) {
+        return null;
+    }
+
+    @Override
+    public List<BookResponseDTO> searchBooksFromGoogle(String query) {
+        return List.of();
+    }
 }
