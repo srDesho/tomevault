@@ -1,5 +1,6 @@
 package com.cristianml.TomeVault.mapper;
 
+import com.cristianml.TomeVault.dto.request.WishlistBookRequestDTO;
 import com.cristianml.TomeVault.dto.response.WishlistBookResponseDTO;
 import com.cristianml.TomeVault.entity.WishlistBookEntity;
 import lombok.AllArgsConstructor;
@@ -13,6 +14,10 @@ import java.util.List;
 public class WishlistBookMapper {
 
     private final ModelMapper modelMapper;
+
+    public WishlistBookEntity toEntity(WishlistBookRequestDTO wishlistBookRequestDTO) {
+        return modelMapper.map(wishlistBookRequestDTO, WishlistBookEntity.class);
+    }
 
     public WishlistBookResponseDTO toResponseDTO(WishlistBookEntity wishlistBookEntity) {
         return modelMapper.map(wishlistBookEntity, WishlistBookResponseDTO.class);
