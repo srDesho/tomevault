@@ -1,5 +1,6 @@
 package com.cristianml.TomeVault.mapper;
 
+import com.cristianml.TomeVault.dto.request.BookRequestDTO;
 import com.cristianml.TomeVault.dto.response.BookResponseDTO;
 import com.cristianml.TomeVault.entity.BookEntity;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,11 @@ import java.util.List;
 public class BookMapper {
 
     private final ModelMapper modelMapper;
+
+    // To entity
+    public BookEntity toEntity(BookRequestDTO dto) {
+        return modelMapper.map(dto, BookEntity.class);
+    }
 
     // Method that converts an entity to dto
     public BookResponseDTO toResponseDTO(BookEntity bookEntity) {
