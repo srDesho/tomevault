@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter
 @Setter
@@ -28,6 +29,12 @@ public class BookEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
     private String thumbnail;
+
+    @ElementCollection
+    @CollectionTable(name = "book_tags", joinColumns = @JoinColumn(name = "book_id"))
+    @Column(name = "tag")
+    private List<String> tags;
+
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)

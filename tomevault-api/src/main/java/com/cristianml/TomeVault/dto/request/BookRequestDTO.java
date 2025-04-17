@@ -4,6 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -13,4 +16,6 @@ public class BookRequestDTO {
     private String author;
     private String description;
     private String thumbnail;
+    private LocalDate finishedAt;
+    private List<String> tags;
 }
