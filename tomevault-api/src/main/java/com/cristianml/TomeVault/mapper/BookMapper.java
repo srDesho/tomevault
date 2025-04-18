@@ -60,7 +60,7 @@ public class BookMapper {
     }
 
     // With page
-    public Page<BookResponseDTO> toResponseDTO(Page<BookEntity> page) {
+    public Page<BookResponseDTO> toResponseDTOPage(Page<BookEntity> page) {
         return page.map(this::toResponseDTO);
     }
 

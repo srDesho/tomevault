@@ -7,6 +7,7 @@ import com.cristianml.TomeVault.entity.WishlistBookEntity;
 import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -43,6 +44,15 @@ public class WishlistBookMapper {
     public WishlistBookResponseDTO toResponseDTO(WishlistBookEntity wishlistBookEntity) {
         return modelMapper.map(wishlistBookEntity, WishlistBookResponseDTO.class);
     }
+
+    public WishlistBookEntity toEntity(GoogleBookItem googleBookItem) {
+        return modelMapper.map(googleBookItem, WishlistBookEntity.class);
+    }
+
+    public Page<WishlistBookResponseDTO> wishlistBookResponseDTOList(Page<WishlistBookEntity> page) {
+        return page.map(this::toResponseDTO);
+    }
+
 
     public List<WishlistBookResponseDTO> wishlistBookResponseDTOList(List<WishlistBookEntity> wishlistBookEntityList) {
         return wishlistBookEntityList.stream()
