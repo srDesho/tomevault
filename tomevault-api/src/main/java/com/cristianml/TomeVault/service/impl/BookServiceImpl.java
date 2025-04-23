@@ -6,6 +6,7 @@ import com.cristianml.TomeVault.dto.response.BookResponseDTO;
 import com.cristianml.TomeVault.entity.BookEntity;
 import com.cristianml.TomeVault.entity.UserEntity;
 import com.cristianml.TomeVault.exception.BookAlreadyExistsException;
+import com.cristianml.TomeVault.exception.ResourceNotFoundException;
 import com.cristianml.TomeVault.mapper.BookMapper;
 import com.cristianml.TomeVault.repository.BookRepository;
 import com.cristianml.TomeVault.service.IBookService;
@@ -58,7 +59,7 @@ public class BookServiceImpl implements IBookService {
     public void deleteBook(Long bookId, UserEntity userEntity) {
         BookEntity delete = bookRepository.findByIdAndUser(bookId, userEntity)
                 // Throws error if book not found or unauthorized.
-                .orElseThrow(() -> new RuntimeException("Book not found or does not belong to the user."));
+                .orElseThrow(() -> new ResourceNotFoundException("Book not found or does not belong to the user."));
         this.bookRepository.delete(delete);
     }
 
