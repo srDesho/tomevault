@@ -2,16 +2,12 @@ package com.cristianml.TomeVault.security.service;
 
 import com.cristianml.TomeVault.entity.UserEntity;
 import com.cristianml.TomeVault.repository.UserRepository;
+import com.cristianml.TomeVault.security.config.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +22,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         UserEntity userEntity = userRepository.findUserEntityByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User with username " + username + " not exists."));
 
-        List<SimpleGrantedAuthority> authorityList = new ArrayList<>();
+       /* List<SimpleGrantedAuthority> authorityList = new ArrayList<>();
 
         // Adding roles
         userEntity.getRoleList().forEach(
@@ -44,6 +40,9 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 userEntity.isAccountNonExpired(),
                 userEntity.isCredentialsNonExpired(),
                 userEntity.isAccountNonLocked(),
-                authorityList);
+                authorityList);*/
+
+        // Simply return a new instance of CustomUserDetails because we configure the authorities in this Custom class
+        return new CustomUserDetails(userEntity);
     }
 }

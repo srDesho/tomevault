@@ -16,6 +16,7 @@ public class BookRequestDTO {
     private String author;
     private String description;
     private String thumbnail;
-    private LocalDate finishedAt;
     private List<String> tags;
+    private LocalDate finishedAt;
+    private LocalDate addedAt;
 }

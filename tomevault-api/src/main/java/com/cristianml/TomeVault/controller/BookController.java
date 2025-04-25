@@ -2,8 +2,8 @@ package com.cristianml.TomeVault.controller;
 
 import com.cristianml.TomeVault.dto.request.BookRequestDTO;
 import com.cristianml.TomeVault.dto.response.BookResponseDTO;
-import com.cristianml.TomeVault.entity.UserEntity;
 import com.cristianml.TomeVault.exception.ResourceNotFoundException;
+import com.cristianml.TomeVault.security.config.CustomUserDetails;
 import com.cristianml.TomeVault.service.IBookService;
 import com.cristianml.TomeVault.utilities.Utilities;
 import lombok.RequiredArgsConstructor;
@@ -34,9 +34,9 @@ public class BookController {
      */
     @GetMapping
     @PreAuthorize("permitAll()")
-    public ResponseEntity<Page<BookResponseDTO>> getBooks(@AuthenticationPrincipal UserEntity user,
+    public ResponseEntity<Page<BookResponseDTO>> getBooks(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                           Pageable pageable) {
-        Page<BookResponseDTO> books = this.bookService.getBooksByUser(user, pageable);
+        Page<BookResponseDTO> books = this.bookService.getBooksByUser(customUserDetails.getUserEntity(), pageable);
         return ResponseEntity.ok(books);
     }
 
@@ -45,8 +45,8 @@ public class BookController {
      */
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BookResponseDTO> addBook(@AuthenticationPrincipal UserEntity user, @RequestBody BookRequestDTO bookRequestDTO) {
-        BookResponseDTO saved = this.bookService.saveBook(bookRequestDTO, user);
+    public ResponseEntity<BookResponseDTO> addBook(@AuthenticationPrincipal CustomUserDetails customUserDetails, @RequestBody BookRequestDTO bookRequestDTO) {
+        BookResponseDTO saved = this.bookService.saveBook(bookRequestDTO, customUserDetails.getUserEntity());
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(saved.getId())
@@ -58,10 +58,10 @@ public class BookController {
      * Deletes a specific book, ensuring user ownership and handling various exceptions.
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Object> deleteBook(@AuthenticationPrincipal UserEntity user, @PathVariable("id") Long id) {
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Object> deleteBook(@AuthenticationPrincipal CustomUserDetails customUserDetails, @PathVariable("id") Long id) {
         try {
-            this.bookService.deleteBook(id, user);
+            this.bookService.deleteBook(id, customUserDetails.getUserEntity());
             return Utilities.generateResponse(HttpStatus.OK, "Book deleted successfully.");
         } catch (ResourceNotFoundException e) {
             return Utilities.generateResponse(HttpStatus.NOT_FOUND, e.getMessage());
@@ -76,10 +76,10 @@ public class BookController {
      * Updates an existing book for the authenticated user.
      */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('CREATE')")
-    public ResponseEntity<BookResponseDTO> updateBook(@AuthenticationPrincipal UserEntity user,
+    @PreAuthorize("hasAuthority('ADD_BOOK')")
+    public ResponseEntity<BookResponseDTO> updateBook(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                       @RequestBody BookRequestDTO requestDTO, @PathVariable("id") Long id) {
-        BookResponseDTO updatedBook = this.bookService.updateBook(id, requestDTO, user);
+        BookResponseDTO updatedBook = this.bookService.updateBook(id, requestDTO, customUserDetails.getUserEntity());
         return ResponseEntity.ok(updatedBook);
     }
 
@@ -87,10 +87,10 @@ public class BookController {
      * Saves a book to the user's collection by importing its details from Google Books using its Google Book ID.
      */
     @PostMapping("/from-google/{googleBookId}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BookResponseDTO> saveBookFromGoogle(@AuthenticationPrincipal UserEntity user,
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    public ResponseEntity<BookResponseDTO> saveBookFromGoogle(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                               @PathVariable("googleBookId") String googleBookId) {
-        BookResponseDTO savedBook = this.bookService.saveBookFromGoogle(googleBookId, user);
+        BookResponseDTO savedBook = this.bookService.saveBookFromGoogle(googleBookId, customUserDetails.getUserEntity());
         return ResponseEntity.ok(savedBook);
     }
 
@@ -98,7 +98,7 @@ public class BookController {
      * Searches for books using the Google Books API based on a query string.
      */
     @GetMapping("/search-google")
-    @PreAuthorize("anyRole()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<BookResponseDTO>> searchBooksFromGoogle(@RequestParam String query) {
         List<BookResponseDTO> searchResults = bookService.searchBooksFromGoogle(query);
         return ResponseEntity.ok(searchResults);

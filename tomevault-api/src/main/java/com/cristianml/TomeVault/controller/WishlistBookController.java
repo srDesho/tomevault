@@ -3,8 +3,8 @@ package com.cristianml.TomeVault.controller;
 import com.cristianml.TomeVault.dto.request.WishlistBookRequestDTO;
 import com.cristianml.TomeVault.dto.response.BookResponseDTO;
 import com.cristianml.TomeVault.dto.response.WishlistBookResponseDTO;
-import com.cristianml.TomeVault.entity.UserEntity;
 import com.cristianml.TomeVault.exception.ResourceNotFoundException;
+import com.cristianml.TomeVault.security.config.CustomUserDetails;
 import com.cristianml.TomeVault.service.IWishlistBookService;
 import com.cristianml.TomeVault.utilities.Utilities;
 import lombok.RequiredArgsConstructor;
@@ -30,11 +30,11 @@ public class WishlistBookController {
      * Adds a book to the authenticated user's wishlist by importing its details from the Google Books API.
      */
     @PostMapping("/from-google/{googleBookId}")
-    @PreAuthorize("isAuthenticate()")
+    @PreAuthorize("isAuthenticated()") // Corregido: isAuthenticated()
     public ResponseEntity<WishlistBookResponseDTO> addToWishlistFromGoogle(
-            @AuthenticationPrincipal UserEntity user, @PathVariable("googleBookId") String googleBookId) {
+            @AuthenticationPrincipal CustomUserDetails customUserDetails, @PathVariable("googleBookId") String googleBookId) { // ¡Cambio aquí!
 
-        WishlistBookResponseDTO addedBook = this.wishlistBookService.addToWishlistFromGoogle(googleBookId, user);
+        WishlistBookResponseDTO addedBook = this.wishlistBookService.addToWishlistFromGoogle(googleBookId, customUserDetails.getUserEntity()); // Accede a UserEntity
         return new ResponseEntity<>(addedBook, HttpStatus.CREATED);
     }
 
@@ -42,10 +42,10 @@ public class WishlistBookController {
      * Moves a book from the wishlist to the user's main collection of read books.
      */
     @PostMapping("/move-to-books/{wishlistId}")
-    @PreAuthorize("isAuthenticate()")
+    @PreAuthorize("isAuthenticated()") // Corregido: isAuthenticated()
     public ResponseEntity<BookResponseDTO> moveToBookCollections(
-            @AuthenticationPrincipal UserEntity user, @PathVariable("wishlistId") Long id) {
-        BookResponseDTO movedBook = this.wishlistBookService.moveToBooks(id, user);
+            @AuthenticationPrincipal CustomUserDetails customUserDetails, @PathVariable("wishlistId") Long id) { // ¡Cambio aquí!
+        BookResponseDTO movedBook = this.wishlistBookService.moveToBooks(id, customUserDetails.getUserEntity()); // Accede a UserEntity
         return ResponseEntity.ok(movedBook);
     }
 
@@ -53,10 +53,10 @@ public class WishlistBookController {
      * Retrieves a paginated list of wishlist books for the authenticated user.
      */
     @GetMapping
-    @PreAuthorize("isAuthenticate()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<WishlistBookResponseDTO>> getWishlistByUser(
-            @AuthenticationPrincipal UserEntity user, Pageable pageable) {
-        Page<WishlistBookResponseDTO> wishlistBooks = this.wishlistBookService.getWishlistByUser(user, pageable);
+            @AuthenticationPrincipal CustomUserDetails customUserDetails, Pageable pageable) { // ¡Cambio aquí!
+        Page<WishlistBookResponseDTO> wishlistBooks = this.wishlistBookService.getWishlistByUser(customUserDetails.getUserEntity(), pageable); // Accede a UserEntity
         return ResponseEntity.ok(wishlistBooks);
     }
 
@@ -64,10 +64,10 @@ public class WishlistBookController {
      * Saves a new wishlist book based on a direct request DTO (manual entry).
      */
     @PostMapping
-    @PreAuthorize("isAuthenticate()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<WishlistBookResponseDTO> saveWishlistBook(
-            @AuthenticationPrincipal UserEntity user, @RequestBody WishlistBookRequestDTO requestDTO) {
-        WishlistBookResponseDTO saved = this.wishlistBookService.saveWishlistBook(requestDTO, user);
+            @AuthenticationPrincipal CustomUserDetails customUserDetails, @RequestBody WishlistBookRequestDTO requestDTO) { // ¡Cambio aquí!
+        WishlistBookResponseDTO saved = this.wishlistBookService.saveWishlistBook(requestDTO, customUserDetails.getUserEntity()); // Accede a UserEntity
         return new ResponseEntity<>(saved, HttpStatus.CREATED);
     }
 
@@ -75,10 +75,10 @@ public class WishlistBookController {
      * Deletes a specific wishlist book, handling various exceptions.
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("isAuthenticate()")
-    public ResponseEntity<Object> deleteWishlistBook(@AuthenticationPrincipal UserEntity user, @PathVariable("id") Long id) {
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Object> deleteWishlistBook(@AuthenticationPrincipal CustomUserDetails customUserDetails, @PathVariable("id") Long id) { // ¡Cambio aquí!
         try {
-            this.wishlistBookService.deleteBook(id, user);
+            this.wishlistBookService.deleteBook(id, customUserDetails.getUserEntity()); // Accede a UserEntity
             return Utilities.generateResponse(HttpStatus.OK, "Book deleted successfully.");
         } catch (ResourceNotFoundException e) {
             return Utilities.generateResponse(HttpStatus.NOT_FOUND, e.getMessage());
@@ -93,11 +93,11 @@ public class WishlistBookController {
      * Updates an existing wishlist book for the authenticated user.
      */
     @PutMapping("/{id}")
-    @PreAuthorize("isAuthenticate()")
-    public ResponseEntity<WishlistBookResponseDTO> updatedBook(@AuthenticationPrincipal UserEntity user,
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<WishlistBookResponseDTO> updatedBook(@AuthenticationPrincipal CustomUserDetails customUserDetails, // ¡Cambio aquí!
                                                                @PathVariable("id") Long id,
                                                                @RequestBody WishlistBookRequestDTO requestDTO) {
-        WishlistBookResponseDTO updated = this.wishlistBookService.updateBook(id, requestDTO, user);
+        WishlistBookResponseDTO updated = this.wishlistBookService.updateBook(id, requestDTO, customUserDetails.getUserEntity()); // Accede a UserEntity
         return ResponseEntity.ok(updated);
     }
 }

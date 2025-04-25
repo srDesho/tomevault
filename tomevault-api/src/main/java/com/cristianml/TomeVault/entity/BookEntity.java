@@ -24,10 +24,11 @@ public class BookEntity {
     private String googleBookId;
     @Column(nullable = false)
     private String title;
-    @Column(nullable = false)
+    @Column(nullable = false, length = 1000)
     private String author;
     @Column(columnDefinition = "TEXT")
     private String description;
+    @Column(length = 1000)
     private String thumbnail;
 
     @ElementCollection
@@ -40,6 +41,10 @@ public class BookEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
-    @Column(name = "finished_at", nullable = false)
+    @Column(name = "added_at")
+    private LocalDate addedAt;
+
+    @Column(name = "finished_at")
     private LocalDate finishedAt;
+
 }

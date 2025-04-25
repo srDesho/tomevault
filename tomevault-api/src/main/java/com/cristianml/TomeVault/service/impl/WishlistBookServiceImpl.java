@@ -22,6 +22,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+
 /**
  * Service implementation for managing user wishlist operations, including Google Books API integration.
  */
@@ -54,6 +56,7 @@ public class WishlistBookServiceImpl implements IWishlistBookService { // Assume
         GoogleBookItem googleBook = this.googleBooksIntegrationService.getBookById(googleBookId); // Fetches book data from Google.
         WishlistBookEntity wishlistBook = wishlistBookMapper.toEntity(googleBook); // Maps Google DTO to wishlist entity.
         wishlistBook.setUser(user); // Sets the book owner.
+        wishlistBook.setAddedAt(LocalDate.now());
 
         return wishlistBookMapper.toResponseDTO(wishlistBookRepository.save(wishlistBook)); // Saves and returns DTO.
     }
