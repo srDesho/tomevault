@@ -115,7 +115,7 @@ public class WishlistBookServiceImpl implements IWishlistBookService { // Assume
     public void deleteBook(Long bookId, UserEntity userEntity) {
         WishlistBookEntity delete = wishlistBookRepository.findByIdAndUser(bookId, userEntity)
                 // Throws error if book not found or unauthorized.
-                .orElseThrow(() -> new RuntimeException("Book not found or does not belong to the user."));
+                .orElseThrow(() -> new ResourceNotFoundException("Book not found or does not belong to the user."));
         this.wishlistBookRepository.delete(delete); // Deletes the wishlist item.
     }
 
@@ -123,7 +123,7 @@ public class WishlistBookServiceImpl implements IWishlistBookService { // Assume
      * Updates an existing wishlist book's details.
      */
     @Override
-    public WishlistBookResponseDTO updateBook(Long bookId, BookRequestDTO bookRequestDTO, UserEntity userEntity) {
+    public WishlistBookResponseDTO updateBook(Long bookId, WishlistBookRequestDTO bookRequestDTO, UserEntity userEntity) {
         WishlistBookEntity existing = this.wishlistBookRepository.findByIdAndUser(bookId, userEntity)
                 // Throws error if book not found or unauthorized.
                 .orElseThrow(() -> new RuntimeException("Book not found or does not belong to the user."));

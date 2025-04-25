@@ -1,6 +1,5 @@
 package com.cristianml.TomeVault.service;
 
-import com.cristianml.TomeVault.dto.request.BookRequestDTO;
 import com.cristianml.TomeVault.dto.request.WishlistBookRequestDTO;
 import com.cristianml.TomeVault.dto.response.BookResponseDTO;
 import com.cristianml.TomeVault.dto.response.WishlistBookResponseDTO;
@@ -20,5 +19,5 @@ public interface IWishlistBookService {
 
     void deleteBook(Long bookId, UserEntity userEntity);
 
-    WishlistBookResponseDTO updateBook(Long bookId, BookRequestDTO bookRequestDTO, UserEntity userEntity);
+    WishlistBookResponseDTO updateBook(Long bookId, WishlistBookRequestDTO bookRequestDTO, UserEntity userEntity);
 }
