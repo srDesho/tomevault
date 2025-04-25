@@ -39,6 +39,6 @@ public class WishlistBookEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
-    @Column(name = "added_at", nullable = false)
+    @Column(name = "added_at")
     private LocalDate addedAt;
 }

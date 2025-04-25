@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -77,6 +78,8 @@ public class BookServiceImpl implements IBookService {
         existing.setAuthor(bookRequestDTO.getAuthor());
         existing.setDescription(bookRequestDTO.getDescription());
         existing.setThumbnail(bookRequestDTO.getThumbnail());
+        existing.setAddedAt(bookRequestDTO.getAddedAt());
+        existing.setFinishedAt(bookRequestDTO.getFinishedAt());
         // Saves updated entity.
         BookEntity updated = this.bookRepository.save(existing);
         return bookMapper.toResponseDTO(updated);
@@ -96,6 +99,7 @@ public class BookServiceImpl implements IBookService {
         GoogleBookItem googleBook = this.googleBooksIntegrationService.getBookById(googleBookId); // Fetches from Google.
         BookEntity book = this.bookMapper.toEntity(googleBook); // Maps to entity.
         book.setUser(user); // Sets book owner.
+        book.setAddedAt(LocalDate.now());
         return bookMapper.toResponseDTO(bookRepository.save(book)); // Saves and returns DTO.
     }
 
