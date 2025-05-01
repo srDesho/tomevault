@@ -1,37 +1,30 @@
-import React, { useState } from 'react';
-import { SearchIcon } from '@heroicons/react/outline';
+import React from 'react';
+import { Link } from 'react-router-dom';
 
-const Header = ({ onSearch }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (onSearch) {
-      onSearch(searchQuery);
-    }
-  };
-
+const Header = ({ isLoggedIn }) => {
   return (
     <header className="bg-gray-800 shadow-lg sticky top-0 z-50">
-      <div className="container mx-auto p-4 flex flex-col md:flex-row items-center justify-between">
-        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-4 md:mb-0">
+      <div className="container mx-auto p-4 flex items-center justify-between">
+        <Link to="/" className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
           TomeVault
-        </h1>
-        <form onSubmit={handleSearch} className="w-full md:w-1/2 flex items-center">
-          <input
-            type="text"
-            className="flex-grow p-3 rounded-l-lg border-2 border-gray-700 bg-gray-700 text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-            placeholder="Buscar libros..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <button
-            type="submit"
-            className="p-3 bg-blue-500 text-white rounded-r-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-          >
-            <SearchIcon className="h-6 w-6" />
-          </button>
-        </form>
+        </Link>
+        <nav className="flex items-center space-x-4">
+          <Link to="/" className="p-2 text-gray-300 hover:text-white transition duration-200">
+            Mis Libros
+          </Link>
+          <Link to="/search" className="p-2 text-gray-300 hover:text-white transition duration-200">
+            Buscar
+          </Link>
+          {isLoggedIn ? (
+            <button className="py-2 px-4 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+              Cerrar Sesión
+            </button>
+          ) : (
+            <button className="py-2 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+              Iniciar Sesión
+            </button>
+          )}
+        </nav>
       </div>
     </header>
   );
