@@ -1,42 +1,64 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { PlusIcon } from '@heroicons/react/outline';
+import { PlusIcon, EyeIcon } from '@heroicons/react/outline';
 
-// Agregamos la prop onAdd para el botón "Agregar"
 const BookCard = ({ book, isSearchList, onAdd }) => {
   return (
-    <div className="bg-gray-800 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 overflow-hidden transform hover:scale-105">
-      <img
-        src={book.thumbnail}
-        alt={`Portada de ${book.title}`}
-        className="w-full h-48 object-cover rounded-t-xl"
-        onError={(e) => { e.target.onerror = null; e.target.src="https://placehold.co/128x194/FFF/000?text=No+Cover" }}
-      />
-      <div className="p-4 flex flex-col items-start">
-        <h3 className="text-lg font-semibold text-white truncate w-full mb-1">{book.title}</h3>
-        <p className="text-sm text-gray-400 italic mb-2 truncate w-full">{book.author}</p>
-        {/* Muestra el contador de lecturas si no es una lista de búsqueda */}
-        {!isSearchList && (
-          <div className="flex items-center gap-1 text-sm text-gray-400 mb-2">
-            📖 {book.readCount}
+    <div className="w-full max-w-[250px] mx-auto">
+      <div className="bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all overflow-hidden h-full flex flex-col">
+        <div className="aspect-[2/3] relative">
+          <img
+            src={book.thumbnail || "https://placehold.co/400x600/1a202c/FFF?text=No+Cover"}
+            alt={`Portada de ${book.title}`}
+            className="w-full h-full object-cover"
+            onError={(e) => { 
+              e.target.onerror = null; 
+              e.target.src = "https://placehold.co/400x600/1a202c/FFF?text=No+Cover";
+            }}
+          />
+        </div>
+        
+        <div className="p-3 flex-1 flex flex-col">
+          <h3 className="font-medium text-white line-clamp-2 text-sm mb-1">{book.title}</h3>
+          <p className="text-gray-400 text-xs line-clamp-1 mb-2">{book.author}</p>
+          
+          <div className="flex justify-between items-center mt-auto">
+            {!isSearchList && (
+              <span className="text-blue-400 text-xs flex items-center">
+                <span className="mr-1">📖</span>
+                {book.readCount || 0}x
+              </span>
+            )}
+            
+            <div className="flex gap-2">
+              {isSearchList ? (
+                <>
+                  <Link
+                    to={`/books/${book.id}`}
+                    className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 rounded text-xs flex items-center justify-center gap-1"
+                  >
+                    <EyeIcon className="h-3 w-3" />
+                    <span>Ver</span>
+                  </Link>
+                  <button
+                    onClick={() => onAdd(book)}
+                    className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs flex items-center justify-center gap-1"
+                  >
+                    <PlusIcon className="h-3 w-3" />
+                    <span>Agregar</span>
+                  </button>
+                </>
+              ) : (
+                <Link
+                  to={`/books/${book.id}`}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs flex items-center justify-center gap-1"
+                >
+                  <EyeIcon className="h-3 w-3" />
+                  <span>Detalles</span>
+                </Link>
+              )}
+            </div>
           </div>
-        )}
-        <div className="mt-auto w-full space-y-2">
-          {isSearchList ? (
-            <button
-              className="w-full p-2 text-sm bg-green-500 text-white rounded-lg hover:bg-green-600 transition duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 flex items-center justify-center gap-1"
-              onClick={() => onAdd(book)}
-            >
-              <PlusIcon className="h-4 w-4" /> Agregar
-            </button>
-          ) : (
-            <Link 
-              to={`/books/${book.id}`} 
-              className="w-full p-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center"
-            >
-              Ver detalles
-            </Link>
-          )}
         </div>
       </div>
     </div>
