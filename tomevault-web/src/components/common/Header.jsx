@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 
 const Header = ({ isLoggedIn }) => {
   return (
-    <header className="bg-gray-800 shadow-lg sticky top-0 z-50">
-      <div className="container mx-auto p-4 flex items-center justify-between">
+    <header className="bg-gray-800 shadow-lg sticky top-0 z-50 w-full">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <Link to="/" className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
           TomeVault
         </Link>
