@@ -3,8 +3,9 @@ import BookCard from './BookCard';
 
 const BookList = ({ books, isSearchList, emptyMessage, onAdd }) => {
   return (
-    <div className="w-full overflow-x-hidden">
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 w-full">
+    <div className="w-full">
+      {/* Ajuste de columnas: 1 en extra-pequeño, 2 en sm, 3 en md, 4 en lg, 5 en xl */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 w-full">
         {books.length > 0 ? (
           books.map(book => (
             <BookCard 

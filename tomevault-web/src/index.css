@@ -3,9 +3,10 @@
 @tailwind utilities;
 
 body {
-  @apply min-w-[320px] overflow-x-hidden;
+  @apply min-w-[320px] overflow-x-hidden bg-gray-900 text-gray-100;
 }
 
+/* Textos truncados */
 .line-clamp-1 {
   display: -webkit-box;
   -webkit-line-clamp: 1;
@@ -20,10 +21,32 @@ body {
   overflow: hidden;
 }
 
-.prose-invert a {
-  color: #60a5fa;
+/* Mejoras para móviles */
+@media (max-width: 640px) {
+  .text-balance {
+    text-wrap: balance;
+  }
 }
 
-.prose-invert a:hover {
-  text-decoration: underline;
+/* Transiciones suaves */
+a, button {
+  @apply transition-colors duration-200;
+}
+
+/* Scroll personalizado */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-500;
 }
