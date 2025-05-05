@@ -29,16 +29,16 @@ const SearchPage = ({ isLoggedIn }) => {
 
   const handleAddBook = (book) => {
     console.log('Agregando libro:', book);
-    // Lógica para agregar libro
   };
 
   return (
     <div className="w-full">
       <div className="mb-8 w-full">
-        <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-6">
+        <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-6 text-center">
           Buscar Libros
         </h2>
-        <form onSubmit={handleSearch} className="flex gap-4 w-full max-w-2xl">
+        {/* Ajuste de formulario para responsive */}
+        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4 w-full max-w-2xl mx-auto">
           <input
             type="text"
             value={searchTerm}

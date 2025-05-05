@@ -1,11 +1,11 @@
 import React from 'react';
 import BookList from '../components/books/BookList';
-import LoadingSpinner from '../components/common/LoadingSpinner';
+import LoadingSpinner from '../components/common/LoadingSpinner'; // Asegúrate de importar LoadingSpinner
 
 const HomePage = ({ myBooks, isLoading }) => {
   return (
     <div className="w-full">
-      <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-8">
+      <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-8 text-center">
         Mis Libros
       </h2>
       
