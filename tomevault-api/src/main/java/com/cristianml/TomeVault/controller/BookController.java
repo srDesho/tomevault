@@ -98,7 +98,7 @@ public class BookController {
      * Searches for books using the Google Books API based on a query string.
      */
     @GetMapping("/search-google")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<List<BookResponseDTO>> searchBooksFromGoogle(@RequestParam String query) {
         List<BookResponseDTO> searchResults = bookService.searchBooksFromGoogle(query);
         return ResponseEntity.ok(searchResults);

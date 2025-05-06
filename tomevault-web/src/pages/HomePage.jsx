@@ -1,6 +1,6 @@
 import React from 'react';
 import BookList from '../components/books/BookList';
-import LoadingSpinner from '../components/common/LoadingSpinner'; // Asegúrate de importar LoadingSpinner
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const HomePage = ({ myBooks, isLoading }) => {
   return (
@@ -9,26 +9,31 @@ const HomePage = ({ myBooks, isLoading }) => {
         Mis Libros
       </h2>
       
+      {/* Displays a loading spinner or the book list. */}
       {isLoading ? (
         <LoadingSpinner />
       ) : (
-        <BookList 
-          books={myBooks} 
-          isSearchList={false}
-          emptyMessage={
-            <div className="col-span-full py-12 text-center">
-              <div className="bg-gray-800 p-6 rounded-lg inline-block">
-                <p className="text-gray-400 mb-4">No tienes libros en tu colección</p>
-                <a 
-                  href="/search" 
-                  className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors"
-                >
-                  Agregar mi primer libro
-                </a>
-              </div>
+        // Displays the book list if available, otherwise an empty collection message.
+        myBooks.length > 0 ? (
+          <BookList 
+            books={myBooks} 
+            isSearchList={false}
+            emptyMessage={null} // Not used if there are books.
+          />
+        ) : (
+          <div className="col-span-full py-12 text-center">
+            <div className="bg-gray-800 p-6 rounded-lg inline-block">
+              <p className="text-gray-400 mb-4">No tienes libros en tu colección</p>
+              {/* Button to redirect to the search page. */}
+              <a 
+                href="/search" 
+                className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors"
+              >
+                Agregar mi primer libro
+              </a>
             </div>
-          }
-        />
+          </div>
+        )
       )}
     </div>
   );
