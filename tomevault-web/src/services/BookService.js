@@ -1,167 +1,114 @@
-// Este servicio simula las llamadas a la API de backend y Google Books.
+// src/services/BookService.js
 
-// Mock data for my books (will be replaced by API calls)
-export const mockMyBooks = [
-    {
-      id: 'my-1',
-      title: 'The Hobbit',
-      author: 'J.R.R. Tolkien',
-      thumbnail: 'https://placehold.co/128x194/FFF/000?text=Hobbit',
-      description: 'A children\'s fantasy novel by J.R.R. Tolkien.',
-      readCount: 3,
+import { getAuthHeader } from './AuthService';
+
+// Base URL for the backend API.
+const BACKEND_BASE_URL = 'http://localhost:8080/api/v1';
+
+// Utility function for API calls with exponential backoff retry logic.
+const fetchWithRetry = async (url, options = {}, retries = 3, delay = 1000) => {
+  // Adds authorization header to each request if available.
+  const authHeader = getAuthHeader();
+  const newOptions = {
+    ...options,
+    headers: {
+      ...options.headers,
+      'Content-Type': 'application/json',
+      ...(authHeader && { 'Authorization': authHeader })
     },
-    {
-      id: 'my-2',
-      title: 'The Hitchhiker\'s Guide to the Galaxy',
-      author: 'Douglas Adams',
-      thumbnail: 'https://placehold.co/128x194/FFF/000?text=HGTG',
-      description: 'A comedy science fiction series created by Douglas Adams.',
-      readCount: 1,
-    },
-    {
-        id: 'my-1',
-        title: 'The Hobbit',
-        author: 'J.R.R. Tolkien',
-        thumbnail: 'https://placehold.co/128x194/FFF/000?text=Hobbit',
-        description: 'A children\'s fantasy novel by J.R.R. Tolkien.',
-        readCount: 3,
-      },
-      {
-        id: 'my-2',
-        title: 'The Hitchhiker\'s Guide to the Galaxy',
-        author: 'Douglas Adams',
-        thumbnail: 'https://placehold.co/128x194/FFF/000?text=HGTG',
-        description: 'A comedy science fiction series created by Douglas Adams.',
-        readCount: 1,
-      },
-      {
-        id: 'my-1',
-        title: 'The Hobbit',
-        author: 'J.R.R. Tolkien',
-        thumbnail: 'https://placehold.co/128x194/FFF/000?text=Hobbit',
-        description: 'A children\'s fantasy novel by J.R.R. Tolkien.',
-        readCount: 3,
-      },
-      {
-        id: 'my-2',
-        title: 'The Hitchhiker\'s Guide to the Galaxy',
-        author: 'Douglas Adams',
-        thumbnail: 'https://placehold.co/128x194/FFF/000?text=HGTG',
-        description: 'A comedy science fiction series created by Douglas Adams.',
-        readCount: 1,
-      },
-      {
-        id: 'my-1',
-        title: 'The Hobbit',
-        author: 'J.R.R. Tolkien',
-        thumbnail: 'https://placehold.co/128x194/FFF/000?text=Hobbit',
-        description: 'A children\'s fantasy novel by J.R.R. Tolkien.',
-        readCount: 3,
-      },
-      {
-        id: 'my-2',
-        title: 'The Hitchhiker\'s Guide to the Galaxy',
-        author: 'Douglas Adams',
-        thumbnail: 'https://placehold.co/128x194/FFF/000?text=HGTG',
-        description: 'A comedy science fiction series created by Douglas Adams.',
-        readCount: 1,
-      },
-      {
-        id: 'my-1',
-        title: 'The Hobbit',
-        author: 'J.R.R. Tolkien',
-        thumbnail: 'https://placehold.co/128x194/FFF/000?text=Hobbit',
-        description: 'A children\'s fantasy novel by J.R.R. Tolkien.',
-        readCount: 3,
-      },
-      {
-        id: 'my-2',
-        title: 'The Hitchhiker\'s Guide to the Galaxy',
-        author: 'Douglas Adams',
-        thumbnail: 'https://placehold.co/128x194/FFF/000?text=HGTG',
-        description: 'A comedy science fiction series created by Douglas Adams.',
-        readCount: 1,
-      },
-      {
-        id: 'my-1',
-        title: 'The Hobbit',
-        author: 'J.R.R. Tolkien',
-        thumbnail: 'https://placehold.co/128x194/FFF/000?text=Hobbit',
-        description: 'A children\'s fantasy novel by J.R.R. Tolkien.',
-        readCount: 3,
-      },
-      {
-        id: 'my-2',
-        title: 'The Hitchhiker\'s Guide to the Galaxy',
-        author: 'Douglas Adams',
-        thumbnail: 'https://placehold.co/128x194/FFF/000?text=HGTG',
-        description: 'A comedy science fiction series created by Douglas Adams.',
-        readCount: 1,
-      },
-  ];
-  
-  // Mock data for Google Books search results (will be replaced by API calls)
-  export const mockGoogleBooks = [
-    {
-      id: 'google-1',
-      title: 'The Lord of the Rings',
-      author: 'J.R.R. Tolkien',
-      thumbnail: 'https://placehold.co/128x194/cccccc/000000?text=LOTR',
-      description: 'A fantasy novel by J. R. R. Tolkien.',
-    },
-    {
-      id: 'google-2',
-      title: 'Dune',
-      author: 'Frank Herbert',
-      thumbnail: 'https://placehold.co/128x194/cccccc/000000?text=Dune',
-      description: 'A science fiction novel by Frank Herbert.',
-    },
-    {
-      id: 'google-3',
-      title: '1984',
-      author: 'George Orwell',
-      thumbnail: 'https://placehold.co/128x194/cccccc/000000?text=1984',
-      description: 'A dystopian social science fiction novel by George Orwell.',
-    },
-    {
-      id: 'google-4',
-      title: 'Brave New World',
-      author: 'Aldous Huxley',
-      thumbnail: 'https://placehold.co/128x194/cccccc/000000?text=BNW',
-      description: 'A dystopian social science fiction novel by Aldous Huxley.',
-    },
-  ];
-  
-  export const getMyBooks = async () => {
-    console.log("Simulando llamada a API: obtener mis libros");
-    return new Promise(resolve => setTimeout(() => resolve(mockMyBooks), 500));
   };
-  
-  export const getBookById = async (id) => {
-    console.log(`Simulando llamada a API: obtener libro con ID: ${id}`);
-    const book = mockMyBooks.find(b => b.id === id);
-    return new Promise(resolve => setTimeout(() => resolve(book), 300));
-  };
-  
-  export const searchGoogleBooks = async (query) => {
-    console.log("Simulando llamada a API: buscar libros en Google Books con query:", query);
-    const filteredBooks = mockGoogleBooks.filter(book =>
-      book.title.toLowerCase().includes(query.toLowerCase()) ||
-      book.author.toLowerCase().includes(query.toLowerCase())
-    );
-    return new Promise(resolve => setTimeout(() => resolve(filteredBooks), 500));
-  };
-  
-  export const createBook = async (newBookData) => {
-    console.log("Simulando llamada a API: crear nuevo libro", newBookData);
-    return new Promise(resolve => setTimeout(() => resolve({ ...newBookData, id: Date.now() }), 500));
-  };
-  
-  export const updateReadCount = async (bookId) => {
-    console.log("Simulando llamada a API: actualizar contador de lecturas para el libro", bookId);
-    const book = mockMyBooks.find(b => b.id === bookId);
-    if (book) {
-      return new Promise(resolve => setTimeout(() => resolve({ ...book, readCount: book.readCount + 1 }), 300));
+
+  for (let i = 0; i < retries; i++) {
+    try {
+      const response = await fetch(url, newOptions);
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}. Details: ${errorBody}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(`Attempt ${i + 1} failed for ${url}:`, error);
+      if (i < retries - 1) {
+        await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
+      } else {
+        throw error;
+      }
     }
-    return new Promise(resolve => setTimeout(() => resolve(null), 300));
-  };
+  }
+};
+
+// Fetches all books from the user's collection via the backend.
+export const getMyBooks = async () => {
+  console.log("Llamando a API: obtener mis libros desde", BACKEND_BASE_URL);
+  try {
+    const books = await fetchWithRetry(`${BACKEND_BASE_URL}/books`);
+    return books;
+  } catch (error) {
+    console.error("Error al obtener mis libros:", error);
+    throw new Error("No se pudieron cargar tus libros. Asegúrate de que tu backend esté funcionando y accesible.");
+  }
+};
+
+// Fetches details of a specific book by ID from the backend.
+export const getBookById = async (id) => {
+  console.log(`Llamando a API: obtener libro con ID: ${id} desde`, BACKEND_BASE_URL);
+  try {
+    const book = await fetchWithRetry(`${BACKEND_BASE_URL}/books/${id}`);
+    return book;
+  } catch (error) {
+    console.error(`Error al obtener libro con ID ${id}:`, error);
+    throw new Error("No se pudo cargar la información del libro. Verifica el ID o la conexión al backend.");
+  }
+};
+
+// Searches for books using the Google Books API via the backend.
+export const searchGoogleBooks = async (query) => {
+  console.log("Llamando a API: buscar libros en tu Backend Spring con query:", query);
+  try {
+    const url = `${BACKEND_BASE_URL}/books/search-google?query=${encodeURIComponent(query)}`;
+    const data = await fetchWithRetry(url, { headers: { 'Content-Type': 'application/json' }});
+    return data;
+  } catch (error) {
+    console.error("Error al buscar libros en tu Backend Spring:", error);
+    throw new Error("No se pudieron buscar libros. Verifica la conexión a tu backend.");
+  }
+};
+
+// Saves a book to the user's collection from a Google Books ID via the backend.
+export const saveBookFromGoogle = async (googleBookId) => {
+  console.log("Llamando a API: guardar libro desde Google Books en tu Backend Spring con ID:", googleBookId);
+  try {
+    const createdBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/from-google/${googleBookId}`, {
+      method: 'POST',
+    });
+    return createdBook;
+  } catch (error) {
+    console.error("Error al guardar libro desde Google Books:", error);
+    throw new Error(error.message || "No se pudo agregar el libro a tu colección. Verifica la conexión al backend y los permisos.");
+  }
+};
+
+// Updates the read count for a specific book in the backend.
+export const updateReadCount = async (bookId, newReadCount) => {
+  console.log(`Llamando a API: actualizar contador de lecturas para el libro ${bookId} a ${newReadCount} en`, BACKEND_BASE_URL);
+  try {
+    const currentBook = await getBookById(bookId);
+    if (!currentBook) {
+      throw new Error("Libro no encontrado para actualizar el contador.");
+    }
+    const bookToUpdate = {
+      ...currentBook,
+      readCount: newReadCount
+    };
+
+    const updatedBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/${bookId}`, {
+      method: 'PUT',
+      body: JSON.stringify(bookToUpdate),
+    });
+    return updatedBook;
+
+  } catch (error) {
+    console.error(`Error al actualizar el contador de lecturas para el libro ${bookId}:`, error);
+    throw new Error("No se pudo actualizar el contador de lecturas. Verifica la conexión al backend o los permisos.");
+  }
+};
