@@ -51,6 +51,11 @@ public class GoogleBookIntegrationServiceImpl implements IGoogleBooksIntegration
      */
     @Override
     public GoogleBookItem getBookById(String googleBookId) throws BookNotFoundException {
+
+        if (googleBookId == null || googleBookId.trim().isEmpty() || "null".equalsIgnoreCase(googleBookId.trim())) {
+            throw new IllegalArgumentException("Google Book ID no puede ser nulo, vacío o la cadena 'null'.");
+        }
+
         // Constructs the URL specifically for retrieving a single volume by ID.
         String url = UriComponentsBuilder.fromHttpUrl(apiUrl)
                 .pathSegment(googleBookId) // Appends the ID as a path segment (e.g., /volumes/ID)

@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import BookList from '../components/books/BookList';
 import * as BookService from '../services/BookService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
-const SearchPage = ({ isLoggedIn }) => {
+const SearchPage = ({ isLoggedIn, onAdd }) => {
+  const navigate = useNavigate();
+
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -11,38 +14,46 @@ const SearchPage = ({ isLoggedIn }) => {
   const [searchErrorMessage, setSearchErrorMessage] = useState(null);
   const [addBookMessage, setAddBookMessage] = useState(null);
 
-  // Effect for debugging: logs the current search state.
+  // Efecto para limpiar mensajes después de un tiempo
   useEffect(() => {
-    console.log("Current searchResults state:", searchResults);
-    console.log("isSearching:", isSearching);
-    console.log("hasSearched:", hasSearched);
-    console.log("searchErrorMessage:", searchErrorMessage);
-  }, [searchResults, isSearching, hasSearched, searchErrorMessage]);
+    let timer;
+    if (addBookMessage || searchErrorMessage) {
+      timer = setTimeout(() => {
+        setAddBookMessage(null);
+        setSearchErrorMessage(null);
+      }, 3000);
+    }
+    return () => clearTimeout(timer);
+  }, [addBookMessage, searchErrorMessage]);
 
-  // Handles the submission of the search form.
+  // Maneja el envío del formulario de búsqueda
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchTerm.trim()) {
       setSearchErrorMessage("Por favor, ingresa un término de búsqueda.");
-      setSearchResults([]); 
-      setHasSearhed(false); 
+      setSearchResults([]);
+      setHasSearched(false);
       return;
     }
-    
+
     setIsSearching(true);
     setHasSearched(true);
     setSearchErrorMessage(null);
     setAddBookMessage(null);
 
     try {
-      // Calls the search service to get books from Google Books via the backend.
       const results = await BookService.searchGoogleBooks(searchTerm);
-      setSearchResults(results);
-      if (results.length === 0) {
-        setSearchErrorMessage("No se encontraron libros para tu búsqueda.");
+      const validResults = results.filter(book => book.googleBookId && book.googleBookId.trim() !== '' && book.googleBookId.toLowerCase() !== 'null');
+      setSearchResults(validResults);
+
+      if (validResults.length === 0) {
+        if (results.length > 0) {
+          setSearchErrorMessage("No se encontraron libros válidos para tu búsqueda. Algunos resultados pueden tener IDs no disponibles.");
+        } else {
+          setSearchErrorMessage("No se encontraron libros para tu búsqueda.");
+        }
       }
     } catch (error) {
-      console.error('Error al buscar libros:', error);
       setSearchResults([]);
       setSearchErrorMessage(error.message || 'Error al buscar libros. Intenta de nuevo.');
     } finally {
@@ -50,17 +61,32 @@ const SearchPage = ({ isLoggedIn }) => {
     }
   };
 
-  // Handles adding a book to the personal collection.
+  // Maneja la adición de un libro a la colección personal
   const handleAddBook = async (book) => {
+    setAddBookMessage(null);
+
+    if (!isLoggedIn) {
+      setAddBookMessage({ type: 'error', text: "Debes iniciar sesión para agregar libros a tu colección." });
+      setTimeout(() => navigate('/login'), 1500);
+      return;
+    }
+
     try {
-      setAddBookMessage(null);
-      // Calls the service to save the Google Books book to the user's collection.
-      const createdBook = await BookService.saveBookFromGoogle(book.id); 
-      console.log('Libro agregado con éxito:', createdBook);
-      setAddBookMessage({ type: 'success', text: `"${createdBook.title}" agregado a tu colección.` });
+      const addedBook = await onAdd(book.googleBookId);
+      setAddBookMessage({ type: 'success', text: `"${addedBook.title}" agregado a tu colección.` });
     } catch (error) {
-      console.error('Error al agregar libro:', error);
-      setAddBookMessage({ type: 'error', text: error.message || 'Error al agregar el libro.' });
+      let errorMessage = error.message || 'Error al agregar el libro.';
+
+      if (errorMessage.includes("403") || errorMessage.includes("401") || errorMessage.includes("Unauthorized") || errorMessage.includes("session")) {
+        errorMessage = "Tu sesión ha expirado o no tienes permisos. Por favor, inicia sesión de nuevo.";
+        setTimeout(() => navigate('/login'), 2000);
+      } else if (errorMessage.includes("already exists") || errorMessage.includes("existe")) {
+        errorMessage = "Este libro ya está en tu colección.";
+      } else if (errorMessage.includes("ID no puede ser nulo o vacío") || errorMessage.includes("invalid book ID")) {
+        errorMessage = "Error: ID de libro inválido. No se pudo agregar.";
+      }
+
+      setAddBookMessage({ type: 'error', text: errorMessage });
     }
   };
 
@@ -70,7 +96,7 @@ const SearchPage = ({ isLoggedIn }) => {
         <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-6 text-center">
           Buscar Libros
         </h2>
-        {/* Search form. */}
+        {/* Formulario de búsqueda */}
         <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4 w-full max-w-2xl mx-auto">
           <input
             type="text"
@@ -89,21 +115,21 @@ const SearchPage = ({ isLoggedIn }) => {
         </form>
       </div>
 
-      {/* Displays search error messages. */}
-      {searchErrorMessage && (
-        <div className="p-4 rounded-lg bg-red-600 text-white text-center mb-4">
-          {searchErrorMessage}
-        </div>
-      )}
-      {/* Displays add book success/error messages. */}
+      {/* Muestra mensajes de éxito/error al añadir libro */}
       {addBookMessage && (
         <div className={`p-4 rounded-lg text-center mb-4 ${addBookMessage.type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white`}>
           {addBookMessage.text}
         </div>
       )}
+      {/* Muestra mensajes de error de búsqueda */}
+      {searchErrorMessage && (
+        <div className="p-4 rounded-lg bg-red-600 text-white text-center mb-4">
+          {searchErrorMessage}
+        </div>
+      )}
 
       <div className="w-full min-w-0">
-        {/* Displays loading spinner or search results. */}
+        {/* Muestra spinner de carga o resultados de búsqueda */}
         {isSearching ? (
           <LoadingSpinner />
         ) : (
@@ -111,7 +137,7 @@ const SearchPage = ({ isLoggedIn }) => {
             books={searchResults}
             isSearchList={true}
             onAdd={handleAddBook}
-            // Messages for different search states.
+            // Mensajes para diferentes estados de búsqueda
             emptyMessage={
               (!hasSearched && !searchTerm.trim()) ? (
                 <div className="col-span-full py-12 text-center">
