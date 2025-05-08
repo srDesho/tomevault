@@ -119,4 +119,30 @@ public class BookController {
         List<BookResponseDTO> searchResults = bookService.searchBooksFromGoogle(query);
         return ResponseEntity.ok(searchResults);
     }
+
+    // Increment read count
+    @PostMapping("/increment-read/{bookId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<BookResponseDTO> incrementBookReadCount(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long bookId) {
+        try {
+            BookResponseDTO updatedBook = this.bookService.incrementBookReadCount(bookId, customUserDetails.getUserEntity());
+            return ResponseEntity.ok(updatedBook);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // Decrement read count
+    @PostMapping("/decrement-read/{bookId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<BookResponseDTO> decrementBookReadCount(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable Long bookId) {
+
+            BookResponseDTO updatedBook = this.bookService.decrementBookReadCount(bookId, customUserDetails.getUserEntity());
+            return ResponseEntity.ok(updatedBook);
+    }
+
 }

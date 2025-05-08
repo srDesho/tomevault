@@ -25,4 +25,7 @@ public interface IBookService {
     BookResponseDTO getBookByGoogleIdForUser(String googleBookId, UserEntity user);
 
     BookResponseDTO getBookFromGoogleBookApi(String googleBookId);
+
+    BookResponseDTO incrementBookReadCount(Long bookId, UserEntity user);
+    BookResponseDTO decrementBookReadCount(Long bookId, UserEntity user);
 }
