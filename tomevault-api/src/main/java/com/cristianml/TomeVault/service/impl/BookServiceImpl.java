@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Manages user book operations, including Google Books API integration.
@@ -63,6 +64,21 @@ public class BookServiceImpl implements IBookService {
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found or does not belong to the user."));
         this.bookRepository.delete(delete);
     }
+
+    @Override
+    public BookResponseDTO getBookByGoogleIdForUser(String googleBookId, UserEntity user) {
+        BookEntity book = this.bookRepository.findByGoogleBookIdAndUser(googleBookId, user)
+                .orElseThrow(() -> new ResourceNotFoundException("Book with Google ID " + googleBookId + " not found in your collection or does not belong to user."));
+        return this.bookMapper.toResponseDTO(book);
+    }
+
+    @Override
+    public BookResponseDTO getBookFromGoogleBookApi(String googleBookId) {
+        GoogleBookItem googleBookItem = this.googleBooksIntegrationService.getBookById(googleBookId);
+        BookEntity book = this.bookMapper.toEntity(googleBookItem);
+        return this.bookMapper.toResponseDTO(book);
+    }
+
 
     /**
      * Updates an existing book's details.

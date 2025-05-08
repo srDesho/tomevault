@@ -55,6 +55,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(http -> http
                         .requestMatchers(HttpMethod.POST, "/login").permitAll()
                         .requestMatchers("/books/search-google").permitAll()
+                        .requestMatchers("/books/google-api/**").permitAll()
                         .requestMatchers("/books/**").authenticated())
                 .build();
     }
