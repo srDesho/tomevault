@@ -2,6 +2,7 @@ package com.cristianml.TomeVault.controller;
 
 import com.cristianml.TomeVault.dto.request.BookRequestDTO;
 import com.cristianml.TomeVault.dto.response.BookResponseDTO;
+import com.cristianml.TomeVault.entity.UserEntity;
 import com.cristianml.TomeVault.exception.ResourceNotFoundException;
 import com.cristianml.TomeVault.security.config.CustomUserDetails;
 import com.cristianml.TomeVault.service.IBookService;
@@ -28,6 +29,21 @@ import java.util.List;
 public class BookController {
 
     private final IBookService bookService;
+
+    // Get book details by its Google Book ID (String) for the authenticated user.
+    @GetMapping("/{googleBookId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<BookResponseDTO> getBookByGoogleId(@AuthenticationPrincipal CustomUserDetails customUserDetails,
+                                                             @PathVariable("googleBookId") String googleBookId) {
+        BookResponseDTO book = this.bookService.getBookByGoogleIdForUser(googleBookId, customUserDetails.getUserEntity());
+        return ResponseEntity.ok(book);
+    }
+
+    // Get book details directly from Google Books API (public access).
+    @GetMapping("/google-api/{googleBookId}")
+    public ResponseEntity<BookResponseDTO> getBookFromGoogleApi(@PathVariable("googleBookId") String googleBookId) {
+        return ResponseEntity.ok(this.bookService.getBookFromGoogleBookApi(googleBookId));
+    }
 
     /**
      * Retrieves a paginated list of books owned by the authenticated user.

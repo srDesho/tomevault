@@ -22,4 +22,7 @@ public interface IBookService {
 
     void deleteBook(Long bookId, UserEntity user);
 
+    BookResponseDTO getBookByGoogleIdForUser(String googleBookId, UserEntity user);
+
+    BookResponseDTO getBookFromGoogleBookApi(String googleBookId);
 }
