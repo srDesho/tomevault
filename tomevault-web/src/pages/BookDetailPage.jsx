@@ -12,6 +12,9 @@ const BookDetailPage = () => {
   const [readCount, setReadCount] = useState(0);
   const [showModal, setShowModal] = useState(false);
   const [message, setMessage] = useState(null); // For success/error messages.
+  const [error, setError] = useState(null);
+  
+
 
   // Fetches book details when the component mounts or bookId changes.
   useEffect(() => {
