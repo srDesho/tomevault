@@ -79,6 +79,43 @@ public class BookServiceImpl implements IBookService {
         return this.bookMapper.toResponseDTO(book);
     }
 
+    @Override
+    @Transactional
+    public BookResponseDTO incrementBookReadCount(Long bookId, UserEntity user) {
+        int updateRows = this.bookRepository.incrementReadCount(bookId, user);
+        if (updateRows == 0) {
+            // Re-fetch to check if book exists at all, or if it's just not owned by user.
+            bookRepository.findById(bookId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Book not found with ID: " + bookId));
+            throw new ResourceNotFoundException("Book not found or not owned by user with ID: " + bookId);
+        }
+        // Fetch the updated book to return the DTO with the new count
+        BookEntity updatedBook = bookRepository.findById(bookId)
+                .orElseThrow(() -> new ResourceNotFoundException("Book not found after update with ID: " + bookId));
+        return bookMapper.toResponseDTO(updatedBook);
+    }
+
+    @Override
+    public BookResponseDTO decrementBookReadCount(Long bookId, UserEntity user) {
+        int updateRows = this.bookRepository.decrementReadCount(bookId, user);
+        System.out.println("================================ " + updateRows);
+        if (updateRows == 0) {
+            // Re-fetch to check if book exists at all, or if it's just not owned by user or readCount is 0.
+            BookEntity book = bookRepository.findById(bookId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Book not found with ID: " + bookId));
+            if (book.getReadCount() == 0) {
+                System.out.println("================================ " + book.getReadCount());
+                throw new IllegalArgumentException("Cannot decrement read count below zero for book ID: " + bookId);
+            } else {
+                throw new ResourceNotFoundException("Book not found or not owned by user with ID: " + bookId);
+            }
+        }
+        // Fetch the updated book to return the DTO with the new count
+        BookEntity book = this.bookRepository.findById(bookId)
+                .orElseThrow(() -> new ResourceNotFoundException("Book not found after with ID: " + bookId));
+        return bookMapper.toResponseDTO(book);
+    }
+
 
     /**
      * Updates an existing book's details.
@@ -116,6 +153,7 @@ public class BookServiceImpl implements IBookService {
         BookEntity book = this.bookMapper.toEntity(googleBook); // Maps to entity.
         book.setUser(user); // Sets book owner.
         book.setAddedAt(LocalDate.now());
+        book.setActive(true);
         return bookMapper.toResponseDTO(bookRepository.save(book)); // Saves and returns DTO.
     }
 

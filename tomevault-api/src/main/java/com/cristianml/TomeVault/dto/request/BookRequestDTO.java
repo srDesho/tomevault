@@ -19,4 +19,6 @@ public class BookRequestDTO {
     private List<String> tags;
     private LocalDate finishedAt;
     private LocalDate addedAt;
+    private Integer readCount;
+    private boolean isActive;
 }

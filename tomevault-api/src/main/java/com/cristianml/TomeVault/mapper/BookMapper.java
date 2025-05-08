@@ -70,6 +70,8 @@ public class BookMapper {
                     mapper.skip(BookEntity::setFinishedAt);
                     // Considera también saltar createdAt y updatedAt si no vienen de GoogleBookItem
                     mapper.skip(BookEntity::setAddedAt);
+                    mapper.skip(BookEntity::setReadCount);
+                    mapper.skip(BookEntity::setActive);
                     // mapper.skip(BookEntity::setUpdatedAt);
                 });
     }

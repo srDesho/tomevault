@@ -47,4 +47,10 @@ public class BookEntity {
     @Column(name = "finished_at")
     private LocalDate finishedAt;
 
+    @Column(name = "read_count")
+    private Integer readCount = 0;
+
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive; // 1 = active | 0 = inactive
+
 }
