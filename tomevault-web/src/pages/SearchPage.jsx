@@ -8,7 +8,7 @@ const SearchPage = ({ isLoggedIn }) => {
   const [isSearching, setIsSearching] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
-  const [searchErrorMessage, setSearchErrorMessage] = useState(null); // Declared here
+  const [searchErrorMessage, setSearchErrorMessage] = useState(null);
   const [addBookMessage, setAddBookMessage] = useState(null);
 
   // Effect for debugging: logs the current search state.

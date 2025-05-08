@@ -49,16 +49,27 @@ export const getMyBooks = async () => {
   }
 };
 
-// Fetches details of a specific book by ID from the backend.
-export const getBookById = async (id) => {
-  console.log(`Llamando a API: obtener libro con ID: ${id} desde`, BACKEND_BASE_URL);
+// Fetches details of a specific book by Googke Book ID from the backend.
+export const getBookById = async (googleBookId) => {
+  console.log(`Llamando a API: obtener libro con ID: ${googleBookId} desde`, BACKEND_BASE_URL);
   try {
-    const book = await fetchWithRetry(`${BACKEND_BASE_URL}/books/${id}`);
-    return book;
-  } catch (error) {
-    console.error(`Error al obtener libro con ID ${id}:`, error);
-    throw new Error("No se pudo cargar la información del libro. Verifica el ID o la conexión al backend.");
-  }
+  const userBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/${googleBookId}`);
+        console.log("Libro encontrado en la colección del usuario:", userBook);
+        // Añadir una bandera para saber que viene de la colección del usuario
+        return { ...userBook, fromUserCollection: true };
+      } catch (error) {
+        // Si no se encuentra en la colección del usuario (ej. 404), intentar de la API de Google
+        console.warn(`Libro con Google ID ${googleBookId} no encontrado en la colección del usuario, intentando desde la API de Google...`, error);
+        try {
+          const googleApiBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/google-api/${googleBookId}`);
+          console.log("Libro encontrado en la API de Google:", googleApiBook);
+          // Añadir una bandera para saber que viene de Google API
+          return { ...googleApiBook, fromUserCollection: false };
+        } catch (googleApiError) {
+          console.error(`Error al obtener libro con Google ID ${googleBookId} de la API de Google:`, googleApiError);
+          throw new Error("No se pudo cargar la información del libro desde tu colección ni desde Google Books.");
+        }
+      }
 };
 
 // Searches for books using the Google Books API via the backend.

@@ -5,6 +5,12 @@ import { PlusIcon, EyeIcon } from '@heroicons/react/outline';
 const BookCard = ({ book, isSearchList, onAdd }) => {
   // Sets the image URL for the book cover or a placeholder if not available.
   const imageUrl = book.thumbnail || "https://placehold.co/400x600/1a202c/FFF?text=No+Cover";
+  
+  // Determina el ID correcto para el enlace de detalles.
+  // Si es una lista de búsqueda, usa el googleBookId.
+  // Si es la colección del usuario, usa googleBookId y si no existe (para libros manuales), usa el id interno.
+  const detailId = isSearchList ? book.googleBookId : (book.googleBookId || book.id);
+  const isLinkDisabled = !detailId; // Deshabilita el enlace si no hay ID válido
 
   return (
     <div className="bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all overflow-hidden h-full flex flex-col">
@@ -42,8 +48,9 @@ const BookCard = ({ book, isSearchList, onAdd }) => {
               <>
                 {/* Button to view book details from search results. */}
                 <Link
-                  to={`/books/${book.id}`}
-                  className="bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 rounded text-xs flex items-center justify-center gap-1"
+                  to={`/books/${detailId}`} // 
+                  className={`bg-gray-700 hover:bg-gray-600 text-white px-2 py-1 rounded text-xs flex items-center justify-center gap-1 ${isLinkDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={(e) => { if (isLinkDisabled) e.preventDefault(); }} // Previene la navegación si el ID es nulo
                 >
                   <EyeIcon className="h-3 w-3" />
                   <span>Ver</span>
@@ -60,8 +67,9 @@ const BookCard = ({ book, isSearchList, onAdd }) => {
             ) : (
               // Button to view book details from the personal collection.
               <Link
-                to={`/books/${book.id}`}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs flex items-center justify-center gap-1"
+                to={`/books/${detailId}`} // <-- USA detailId (que ahora es book.googleBookId o id interno)
+                className={`bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs flex items-center justify-center gap-1 ${isLinkDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={(e) => { if (isLinkDisabled) e.preventDefault(); }} // Previene la navegación si el ID es nulo
               >
                 <EyeIcon className="h-3 w-3" />
                 <span>Detalles</span>
