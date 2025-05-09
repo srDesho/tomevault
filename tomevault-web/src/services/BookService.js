@@ -123,3 +123,45 @@ export const updateReadCount = async (bookId, newReadCount) => {
     throw new Error("No se pudo actualizar el contador de lecturas. Verifica la conexión al backend o los permisos.");
   }
 };
+
+// Increment read count
+export const incrementReadCount = async (bookId) => {
+  console.log("Llamando a API: incrementar contador de lecturas para libro ID:", bookId);
+  try {
+    const updatedBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/increment-read/${bookId}`, {
+      method: 'POST'
+    });
+    return updatedBook;
+  } catch (error) {
+    console.error("Error al incrementar contador de lecturas:", error);
+    throw new Error(error.message || "No se pudo incrementar el contador de lecturas.");
+  }
+};
+
+// Decrement read count
+export const decrementReadCount = async (bookId) => {
+  console.log("Llamando a API: decrementar contador de lecturas para libro ID:", bookId);
+  try {
+    const updatedBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/decrement-read/${bookId}`, {
+      method: 'POST'
+    });
+    return updatedBook;
+  } catch (error) {
+    console.error("Error al decrementar contador de lecturas:", error);
+    throw new Error(error.message || "No se pudo decrementar el contador de lecturas.");
+  }
+};
+
+// Delete book
+export const deleteBook = async (bookId) => {
+  console.log("Llamando a API: eliminar libro ID:", bookId);
+  try {
+    await fetchWithRetry(`${BACKEND_BASE_URL}/books/${bookId}`, {
+      method: 'DELETE'
+    });
+    return true;
+  } catch (error) {
+    console.error("Error al eliminar libro:", error);
+    throw new Error(error.message || "No se pudo eliminar el libro.");
+  }
+};
