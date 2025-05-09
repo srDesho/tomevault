@@ -62,7 +62,8 @@ public class BookServiceImpl implements IBookService {
         BookEntity delete = bookRepository.findByIdAndUser(bookId, userEntity)
                 // Throws error if book not found or unauthorized.
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found or does not belong to the user."));
-        this.bookRepository.delete(delete);
+        delete.setActive(false);
+        this.bookRepository.save(delete);
     }
 
     @Override

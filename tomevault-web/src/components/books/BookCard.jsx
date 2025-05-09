@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { PlusIcon, EyeIcon } from '@heroicons/react/outline';
+import { PlusIcon, EyeIcon, TrashIcon } from '@heroicons/react/outline';
 
-const BookCard = ({ book, isSearchList, onAdd }) => {
+
+const BookCard = ({ book, isSearchList, onAdd, onDelete }) => {
   // Sets the image URL for the book cover or a placeholder if not available.
   const imageUrl = book.thumbnail || "https://placehold.co/400x600/1a202c/FFF?text=No+Cover";
   
@@ -11,7 +12,6 @@ const BookCard = ({ book, isSearchList, onAdd }) => {
   // Si es la colección del usuario, usa googleBookId y si no existe (para libros manuales), usa el id interno.
   const detailId = isSearchList ? book.googleBookId : (book.googleBookId || book.id);
   const isLinkDisabled = !detailId; // Deshabilita el enlace si no hay ID válido
-
   return (
     <div className="bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all overflow-hidden h-full flex flex-col">
       <div className="aspect-[2/3] relative">
@@ -66,6 +66,7 @@ const BookCard = ({ book, isSearchList, onAdd }) => {
               </>
             ) : (
               // Button to view book details from the personal collection.
+              <>
               <Link
                 to={`/books/${detailId}`} // <-- USA detailId (que ahora es book.googleBookId o id interno)
                 className={`bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs flex items-center justify-center gap-1 ${isLinkDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -74,6 +75,20 @@ const BookCard = ({ book, isSearchList, onAdd }) => {
                 <EyeIcon className="h-3 w-3" />
                 <span>Detalles</span>
               </Link>
+            <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (window.confirm(`¿Estás seguro de eliminar "${book.title}"?`)) {
+                      onDelete(book.id);
+                    }
+                  }}
+                  className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs flex items-center justify-center gap-1"
+                  title="Eliminar libro"
+                >
+                  <TrashIcon className="h-3 w-3" />
+                  <span>Eliminar</span>
+                </button>
+              </>
             )}
           </div>
         </div>
