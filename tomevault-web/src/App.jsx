@@ -11,56 +11,58 @@ import './App.css';
 import './index.css';
 
 const App = () => {
-  // Estado para el inicio de sesión del usuario
+  // State for user login status
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(AuthService.isAuthenticated());
-  // Estado para la colección de libros del usuario
+  // State for the user's book collection
   const [myBooks, setMyBooks] = useState([]);
-  // Estado para indicar si los libros del usuario están cargando
+  // State to indicate if user's books are loading
   const [isLoadingMyBooks, setIsLoadingMyBooks] = useState(true);
 
-  // Maneja el éxito del inicio de sesión
+  // Handles successful user login
   const handleLoginSuccess = () => {
     setIsUserLoggedIn(true);
     fetchMyBooks();
   };
 
-  // Maneja el cierre de sesión del usuario
+  // Handles user logout
   const handleLogout = () => {
     AuthService.logout();
     setIsUserLoggedIn(false);
     setMyBooks([]);
   };
 
-  // Obtiene asincrónicamente los libros del usuario
+  // Asynchronously fetches user's books
   const fetchMyBooks = async () => {
     setIsLoadingMyBooks(true);
     try {
       if (AuthService.isAuthenticated()) {
         const books = await BookService.getMyBooks();
-        setMyBooks(books.content || books);
+        // Ensure books.content or books is an array
+        setMyBooks(Array.isArray(books.content) ? books.content : books);
       } else {
         setMyBooks([]);
       }
     } catch (error) {
+      console.error("Error fetching my books:", error);
       setMyBooks([]);
     } finally {
       setIsLoadingMyBooks(false);
     }
   };
 
-  // Efecto para obtener libros al montar o cambiar el estado de login
+  // Effect to fetch books on mount or login status change
   useEffect(() => {
     fetchMyBooks();
-  }, [isUserLoggedIn]);
+  }, [isUserLoggedIn]); // Ensures books are reloaded when login status changes
 
-  // Maneja la adición de un libro desde la página de búsqueda
+  // Handles adding a book from the search page
   const handleAddBookFromSearch = async (bookGoogleId) => {
     if (!isUserLoggedIn) {
-      throw new Error("Debes iniciar sesión para agregar libros a tu colección.");
+      throw new Error("You must be logged in to add books to your collection.");
     }
     try {
       const addedBook = await BookService.saveBookFromGoogle(bookGoogleId);
-      fetchMyBooks(); // Recarga mis libros para el HomePage
+      fetchMyBooks(); // Reloads my books for HomePage
       return addedBook;
     } catch (error) {
       throw error;
@@ -70,16 +72,22 @@ const App = () => {
   return (
     <Router>
       <div className="min-h-screen flex flex-col bg-gray-900 font-sans text-gray-100">
-        {/* Pasa el estado de login y la función de logout al Header */}
+        {/* Pass login status and logout function to Header */}
         <Header isLoggedIn={isUserLoggedIn} onLogout={handleLogout} />
         <main className="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Routes>
-            {/* Ruta para la página de inicio */}
+            {/* Route for the home page */}
             <Route
               path="/"
-              element={<HomePage myBooks={myBooks} isLoading={isLoadingMyBooks} />}
+              element={
+                <HomePage
+                  myBooks={myBooks}
+                  isLoading={isLoadingMyBooks}
+                  refreshBooks={fetchMyBooks} // Key change here!
+                />
+              }
             />
-            {/* Ruta para la página de búsqueda */}
+            {/* Route for the search page */}
             <Route
               path="/search"
               element={<SearchPage
@@ -87,9 +95,9 @@ const App = () => {
                 onAdd={handleAddBookFromSearch}
               />}
             />
-            {/* Ruta para la página de detalles del libro */}
+            {/* Route for the book details page */}
             <Route path="/books/:bookId" element={<BookDetailPage />} />
-            {/* Ruta para la página de login */}
+            {/* Route for the login page */}
             <Route
               path="/login"
               element={<LoginPage onLoginSuccess={handleLoginSuccess} />}
