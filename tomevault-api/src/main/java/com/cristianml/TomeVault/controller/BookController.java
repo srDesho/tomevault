@@ -49,7 +49,7 @@ public class BookController {
      * Retrieves a paginated list of books owned by the authenticated user.
      */
     @GetMapping
-    @PreAuthorize("permitAll()")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<BookResponseDTO>> getBooks(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                           Pageable pageable) {
         Page<BookResponseDTO> books = this.bookService.getBooksByUser(customUserDetails.getUserEntity(), pageable);
@@ -61,7 +61,8 @@ public class BookController {
      */
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BookResponseDTO> addBook(@AuthenticationPrincipal CustomUserDetails customUserDetails, @RequestBody BookRequestDTO bookRequestDTO) {
+    public ResponseEntity<BookResponseDTO> addBook(@AuthenticationPrincipal CustomUserDetails customUserDetails,
+                                                   @RequestBody BookRequestDTO bookRequestDTO) {
         BookResponseDTO saved = this.bookService.saveBook(bookRequestDTO, customUserDetails.getUserEntity());
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
@@ -75,7 +76,8 @@ public class BookController {
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Object> deleteBook(@AuthenticationPrincipal CustomUserDetails customUserDetails, @PathVariable("id") Long id) {
+    public ResponseEntity<Object> deleteBook(@AuthenticationPrincipal CustomUserDetails customUserDetails,
+                                             @PathVariable("id") Long id) {
         try {
             this.bookService.deleteBook(id, customUserDetails.getUserEntity());
             return Utilities.generateResponse(HttpStatus.OK, "Book deleted successfully.");
@@ -94,7 +96,8 @@ public class BookController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ADD_BOOK')")
     public ResponseEntity<BookResponseDTO> updateBook(@AuthenticationPrincipal CustomUserDetails customUserDetails,
-                                                      @RequestBody BookRequestDTO requestDTO, @PathVariable("id") Long id) {
+                                                      @RequestBody BookRequestDTO requestDTO,
+                                                      @PathVariable("id") Long id) {
         BookResponseDTO updatedBook = this.bookService.updateBook(id, requestDTO, customUserDetails.getUserEntity());
         return ResponseEntity.ok(updatedBook);
     }
@@ -140,9 +143,7 @@ public class BookController {
     public ResponseEntity<BookResponseDTO> decrementBookReadCount(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable Long bookId) {
-
-            BookResponseDTO updatedBook = this.bookService.decrementBookReadCount(bookId, customUserDetails.getUserEntity());
-            return ResponseEntity.ok(updatedBook);
+        BookResponseDTO updatedBook = this.bookService.decrementBookReadCount(bookId, customUserDetails.getUserEntity());
+        return ResponseEntity.ok(updatedBook);
     }
-
 }
