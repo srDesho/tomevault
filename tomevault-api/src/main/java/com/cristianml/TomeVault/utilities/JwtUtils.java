@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 public class JwtUtils {
 
     // Import Key and User
-    @Value("${JWT_PRIVATE_KEY_TOME}")
+    @Value("${security.jwt.key.private}")
     private String privateKey;
 
     @Value("${security.jwt.user.generator}")

@@ -25,7 +25,7 @@ export const login = async (username, password) => {
   const authHeader = 'Basic ' + btoa(`${username}:${password}`);
 
   try {
-    const response = await fetch(`${BACKEND_BASE_URL}/login`, {
+    const response = await fetch(`${BACKEND_BASE_URL}/auth/login`, {
       method: 'POST', // HTTP method for the login endpoint.
       headers: {
         'Content-Type': 'application/json',

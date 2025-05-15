@@ -7,7 +7,6 @@ package com.cristianml.TomeVault.service.impl;
 import com.cristianml.TomeVault.dto.google.GoogleBookItem;
 import com.cristianml.TomeVault.dto.google.GoogleBooksResponse;
 import com.cristianml.TomeVault.exception.BookNotFoundException;
-import com.cristianml.TomeVault.exception.ResourceNotFoundException;
 import com.cristianml.TomeVault.service.IGoogleBooksIntegrationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
