@@ -1,71 +1,65 @@
-// src/services/AuthService.js
-// This service handles authentication logic (login and logout).
+// This service handles authentication logic using JWT (JSON Web Tokens).
 
 const BACKEND_BASE_URL = 'http://localhost:8080/api/v1'; // Base URL for your backend
 
-// Variables to store logged-in user credentials.
-// WARNING: Storing credentials directly in variables like this is for DEMONSTRATION ONLY.
-// In a real application, you would use JWTs and store them securely (e.g., in HttpOnly cookies).
-let currentUsername = null;
-let currentPassword = null;
-
-// Retrieves the Basic Auth authorization header if the user is logged in.
-export const getAuthHeader = () => {
-  if (currentUsername && currentPassword) {
-    // Encodes "username:password" in Base64 for Basic Auth.
-    return 'Basic ' + btoa(`${currentUsername}:${currentPassword}`);
-  }
-  return null; // No header if the user is not logged in.
-};
+const TOKEN_KEY = 'jwtToken'; // Key for storing the JWT in localStorage
 
 // Attempts to log in with the provided username and password.
 export const login = async (username, password) => {
-  console.log(`Attempting to log in with user: ${username}`);
-  // Creates the authorization header for the login request.
-  const authHeader = 'Basic ' + btoa(`${username}:${password}`);
+  console.log(`Attempting to log in with user: ${username}`);
+  
+  try {
+    const response = await fetch(`${BACKEND_BASE_URL}/auth/login`, {
+      method: 'POST', // HTTP method for the login endpoint.
+      headers: {
+        'Content-Type': 'application/json', // Backend expects JSON body
+      },
+      body: JSON.stringify({ username, password }), // Send credentials as JSON body
+    });
 
-  try {
-    const response = await fetch(`${BACKEND_BASE_URL}/auth/login`, {
-      method: 'POST', // HTTP method for the login endpoint.
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader // Sends credentials in the header.
-      },
-    });
-
-    if (response.ok) {
-      // If the login is successful, stores credentials in memory.
-      currentUsername = username;
-      currentPassword = password;
-      console.log('Inicio de sesión exitoso.');
-      return true; // Indicates success.
-    } else if (response.status === 401) {
-      // Handles invalid credentials.
-      console.warn('Login failed: Invalid credentials.');
-      throw new Error('Credenciales inválidas.');
-    } else {
-      // Handles other server response errors.
-      const errorText = await response.text();
-      console.error('Error en el inicio de sesión:', response.status, errorText);
-      throw new Error(`Error ${response.status}: ${errorText || 'Error desconocido'}`);
-    }
-  } catch (error) {
-    // Handles network or unexpected errors during login.
-    console.error('Network or unexpected error during login:', error);
-    throw new Error(error.message || 'No se pudo conectar al servidor de autenticación.');
-  }
+    if (response.ok) {
+      const data = await response.json(); // Parse the JSON response
+      if (data.jwt) {
+        localStorage.setItem(TOKEN_KEY, data.jwt); // Store the JWT
+        console.log('Login successful. JWT stored.');
+        return true; // Indicates success.
+      } else {
+        console.error('Login successful, but no JWT received.');
+        throw new Error('No se recibió el token de autenticación.');
+      }
+    } else if (response.status === 401) {
+      console.warn('Login failed: Invalid credentials.');
+      throw new Error('Credenciales inválidas. Por favor, inténtalo de nuevo.');
+    } else {
+      const errorBody = await response.text();
+      console.error('Error during login:', response.status, errorBody);
+      throw new Error(`Error ${response.status}: ${errorBody || 'Error desconocido'}`);
+    }
+  } catch (error) {
+    console.error('Network or unexpected error during login:', error);
+    throw new Error(error.message || 'No se pudo conectar al servidor de autenticación.');
+  }
 };
 
-// Logs out the user.
+// Logs out the user by removing the JWT from storage.
 export const logout = () => {
-  console.log('Cerrando sesión.');
-  // Clears stored credentials from memory.
-  currentUsername = null;
-  currentPassword = null;
-  // In a real application, you would also invalidate the session/token on the backend if necessary.
+  console.log('Logging out. Removing JWT.');
+  localStorage.removeItem(TOKEN_KEY); // Remove the JWT
+  // No need to invalidate on backend for stateless JWTs, but a revoke list could be implemented for stronger security.
 };
 
-// Checks if the user is currently logged in.
+// Retrieves the JWT from localStorage.
+export const getJwt = () => {
+  return localStorage.getItem(TOKEN_KEY);
+};
+
+// Checks if the user is currently logged in by checking for the JWT.
 export const isAuthenticated = () => {
-  return currentUsername !== null;
+  return getJwt() !== null;
+};
+
+// Retrieves the Authorization header for API requests.
+export const getAuthHeader = () => {
+  const jwt = getJwt();
+  return jwt ? `Bearer ${jwt}` : null; // Return "Bearer <JWT>"
 };
