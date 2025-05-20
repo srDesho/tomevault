@@ -33,8 +33,9 @@ public class JwtUtils {
         // Define the algorithm for signing the token using the private key.
         Algorithm algorithm = Algorithm.HMAC256(privateKey);
 
-        // Extract the username (principal) from the Authentication Object
-        String username = authentication.getPrincipal().toString();
+        // Use authentication.getName() to correctly extract the username from the principal.
+        // This works whether the principal is a String or a UserDetails object.
+        String username = authentication.getName();
 
         // Convert the user's granted authorities (roles and permissions) into a comma-separated string.
         String authorities = authentication.getAuthorities()
