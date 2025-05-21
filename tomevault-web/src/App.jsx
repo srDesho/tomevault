@@ -1,68 +1,70 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Header from './components/common/Header';
-import HomePage from './pages/HomePage';
-import SearchPage from './pages/SearchPage';
-import BookDetailPage from './pages/BookDetailPage';
-import LoginPage from './pages/LoginPage';
-import * as BookService from './services/BookService';
-import * as AuthService from './services/AuthService';
-import './App.css';
-import './index.css';
+import Header from './components/common/Header'; // Ruta corregida
+import HomePage from './pages/HomePage'; // Ruta corregida
+import SearchPage from './pages/SearchPage'; // Ruta corregida
+import BookDetailPage from './pages/BookDetailPage'; // Ruta corregida
+import LoginPage from './pages/LoginPage'; // Ruta corregida
+import RegisterPage from './pages/RegisterPage'; // Ruta corregida
+import * as BookService from './services/BookService'; // Ruta corregida
+import * as AuthService from './services/AuthService'; // Ruta corregida
+
+import './App.css'; // Ruta corregida
+import './index.css'; // Ruta corregida
 
 const App = () => {
-  // State for user login status
+  // Estado para el estado de inicio de sesión del usuario
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(AuthService.isAuthenticated());
-  // State for the user's book collection
+  // Estado para la colección de libros del usuario
   const [myBooks, setMyBooks] = useState([]);
-  // State to indicate if user's books are loading
+  // Estado para indicar si los libros del usuario están cargando
   const [isLoadingMyBooks, setIsLoadingMyBooks] = useState(true);
 
-  // Handles successful user login
+  // Maneja el inicio de sesión exitoso del usuario
   const handleLoginSuccess = () => {
     setIsUserLoggedIn(true);
     fetchMyBooks();
   };
 
-  // Handles user logout
+  // Maneja el cierre de sesión del usuario
   const handleLogout = () => {
     AuthService.logout();
     setIsUserLoggedIn(false);
     setMyBooks([]);
   };
 
-  // Asynchronously fetches user's books
+  // Obtiene asincrónicamente los libros del usuario
   const fetchMyBooks = async () => {
     setIsLoadingMyBooks(true);
     try {
       if (AuthService.isAuthenticated()) {
         const books = await BookService.getMyBooks();
-        // Ensure books.content or books is an array
+        // Asegura que books.content o books sea un array
         setMyBooks(Array.isArray(books.content) ? books.content : books);
       } else {
         setMyBooks([]);
       }
     } catch (error) {
-      console.error("Error fetching my books:", error);
+      console.error("Error al obtener mis libros:", error);
       setMyBooks([]);
     } finally {
       setIsLoadingMyBooks(false);
     }
   };
 
-  // Effect to fetch books on mount or login status change
+  // Efecto para obtener libros al montar o al cambiar el estado de inicio de sesión
   useEffect(() => {
     fetchMyBooks();
-  }, [isUserLoggedIn]); // Ensures books are reloaded when login status changes
+  }, [isUserLoggedIn]); // Asegura que los libros se recarguen cuando cambia el estado de inicio de sesión
 
-  // Handles adding a book from the search page
+  // Maneja la adición de un libro desde la página de búsqueda
   const handleAddBookFromSearch = async (bookGoogleId) => {
     if (!isUserLoggedIn) {
-      throw new Error("You must be logged in to add books to your collection.");
+      throw new Error("Debes iniciar sesión para añadir libros a tu colección.");
     }
     try {
       const addedBook = await BookService.saveBookFromGoogle(bookGoogleId);
-      fetchMyBooks(); // Reloads my books for HomePage
+      fetchMyBooks(); // Recarga mis libros para HomePage
       return addedBook;
     } catch (error) {
       throw error;
@@ -72,22 +74,22 @@ const App = () => {
   return (
     <Router>
       <div className="min-h-screen flex flex-col bg-gray-900 font-sans text-gray-100">
-        {/* Pass login status and logout function to Header */}
+        {/* Pasa el estado de inicio de sesión y la función de cierre de sesión al Header */}
         <Header isLoggedIn={isUserLoggedIn} onLogout={handleLogout} />
         <main className="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Routes>
-            {/* Route for the home page */}
+            {/* Ruta para la página de inicio */}
             <Route
               path="/"
               element={
                 <HomePage
                   myBooks={myBooks}
                   isLoading={isLoadingMyBooks}
-                  refreshBooks={fetchMyBooks} // Key change here!
+                  refreshBooks={fetchMyBooks} // Cambio clave aquí!
                 />
               }
             />
-            {/* Route for the search page */}
+            {/* Ruta para la página de búsqueda */}
             <Route
               path="/search"
               element={<SearchPage
@@ -95,13 +97,15 @@ const App = () => {
                 onAdd={handleAddBookFromSearch}
               />}
             />
-            {/* Route for the book details page */}
+            {/* Ruta para la página de detalles del libro */}
             <Route path="/books/:bookId" element={<BookDetailPage />} />
-            {/* Route for the login page */}
+            {/* Ruta para la página de inicio de sesión */}
             <Route
               path="/login"
               element={<LoginPage onLoginSuccess={handleLoginSuccess} />}
             />
+            {/* Nueva ruta para la página de registro */}
+            <Route path="/register" element={<RegisterPage />} />
           </Routes>
         </main>
       </div>

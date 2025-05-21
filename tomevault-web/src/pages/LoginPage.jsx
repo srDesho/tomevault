@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import * as AuthService from '../services/AuthService';
+import * as AuthService from '../services/AuthService'; // Ensure this path is correct
+import { User, Lock } from 'lucide-react'; // Import necessary icons
 
 const LoginPage = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState('');
@@ -17,7 +18,8 @@ const LoginPage = ({ onLoginSuccess }) => {
 
     try {
       // Calls the authentication service to log in.
-      const success = await AuthService.login(username, password);
+      const success = await AuthService.login(username, password); // Using real AuthService
+      
       if (success) {
         onLoginSuccess(); // Notifies the parent component (App) of success.
         navigate('/'); // Redirects the user to the homepage.
@@ -33,59 +35,91 @@ const LoginPage = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4">
-      <div className="bg-gray-800 p-8 rounded-lg shadow-xl w-full max-w-md">
-        <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-6 text-center">
-          Iniciar Sesión
-        </h2>
-        
+    <div className="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center p-4">
+      {/* Added hover:scale-105 effect for zoom */}
+      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full transform transition-all duration-300 hover:scale-105">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-extrabold text-gray-900">Bienvenido de Nuevo</h2>
+          <p className="mt-2 text-sm text-gray-600">Inicia sesión en tu cuenta</p>
+        </div>
+
         {/* Displays error messages. */}
         {error && (
-          <div className="bg-red-600 text-white p-3 rounded-md mb-4 text-center">
+          <div className="bg-red-500 text-white p-3 rounded-md mb-4 text-center">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="username" className="block text-gray-300 text-sm font-medium mb-2">
-              Nombre de Usuario
-            </label>
-            <input
-              type="text"
-              id="username"
-              name="username"
-              className="w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              disabled={isLoading}
-            />
+            <label htmlFor="username" className="sr-only">Usuario</label>
+            <div className="relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <User className="h-5 w-5 text-gray-400" aria-hidden="true" />
+              </div>
+              <input
+                type="text"
+                id="username"
+                name="username"
+                // Added text-gray-900 to ensure text visibility when typing
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
+                placeholder="Nombre de Usuario"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
           </div>
           <div>
-            <label htmlFor="password" className="block text-gray-300 text-sm font-medium mb-2">
-              Contraseña
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              className="w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={isLoading}
-            />
+            <label htmlFor="password" className="sr-only">Contraseña</label>
+            <div className="relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Lock className="h-5 w-5 text-gray-400" aria-hidden="true" />
+              </div>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                // Added text-gray-900 to ensure text visibility when typing
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
+                placeholder="Contraseña"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="text-sm">
+              <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
+                ¿Olvidaste tu contraseña?
+              </a>
+            </div>
           </div>
           {/* Submit button for the form. */}
-          <button
-            type="submit"
-            className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 disabled:bg-gray-600 disabled:cursor-not-allowed"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Iniciando Sesión...' : 'Iniciar Sesión'}
-          </button>
+          <div>
+            <button
+              type="submit"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Iniciando Sesión...' : 'Iniciar Sesión'}
+            </button>
+          </div>
         </form>
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-600">
+            ¿No tienes una cuenta?{' '}
+            <button
+              onClick={() => navigate('/register')}
+              className="font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none"
+            >
+              Regístrate ahora
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );
