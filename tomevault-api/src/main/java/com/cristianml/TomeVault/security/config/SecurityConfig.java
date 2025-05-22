@@ -62,6 +62,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/sign-up").permitAll()
                         .requestMatchers("/books/search-google").permitAll()
                         .requestMatchers("/books/google-api/**").permitAll()
+                        .requestMatchers("/user/**").authenticated()
                         .requestMatchers("/books/**").authenticated())
                 .addFilterBefore(jwtTokenValidator, UsernamePasswordAuthenticationFilter.class)
                 .build();

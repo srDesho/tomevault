@@ -1,109 +1,108 @@
 package com.cristianml.TomeVault.service.impl;
 
-import com.cristianml.TomeVault.dto.request.UserRequestDTO;
-import com.cristianml.TomeVault.dto.response.UserResponseDTO;
+import com.cristianml.TomeVault.dto.request.ChangePasswordRequestDTO;
+import com.cristianml.TomeVault.dto.request.UserProfileUpdateRequestDTO;
+import com.cristianml.TomeVault.dto.response.UserProfileResponseDTO;
 import com.cristianml.TomeVault.entity.UserEntity;
-import com.cristianml.TomeVault.exception.ResourceNotFoundException;
 import com.cristianml.TomeVault.mapper.UserMapper;
 import com.cristianml.TomeVault.repository.UserRepository;
+import com.cristianml.TomeVault.security.dto.AuthResponse;
 import com.cristianml.TomeVault.service.IUserService;
+import com.cristianml.TomeVault.utilities.JwtUtils;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
-import org.springframework.context.annotation.Primary;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Service implementation for managing user-related operations.
- * This class handles the business logic for creating, retrieving, updating, and deleting users.
- */
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
-@Primary
 @RequiredArgsConstructor
 public class UserServiceImpl implements IUserService {
 
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
-    private final ModelMapper modelMapper;
     private final UserMapper userMapper;
+    private final JwtUtils jwtUtils;
 
-    /**
-     * Creates a new user.
-     */
+    // Retrieves authenticated user's complete profile information.
+    // Maps internal UserEntity to secure UserProfileResponseDTO for client consumption.
     @Override
-    public UserResponseDTO createUser(UserRequestDTO userRequestDTO) {
-        if (this.userRepository.existsByEmail(userRequestDTO.getEmail())) {
-            throw new IllegalArgumentException("Email already registered.");
-        }
-
-        UserEntity userEntity = this.userMapper.toEntity(userRequestDTO);
-        userEntity.setPassword(passwordEncoder.encode(userRequestDTO.getPassword()));
-        userEntity.setEnabled(true);
-        userEntity.setAccountNonExpired(true);
-        userEntity.setAccountNonLocked(true);
-        userEntity.setCredentialsNonExpired(true);
-
-        return this.userMapper.toResponse(this.userRepository.save(userEntity));
+    @Transactional(readOnly = true)
+    public UserProfileResponseDTO getUserProfile(UserEntity user) {
+        return userMapper.toProfileResponse(user);
     }
 
-    /**
-     * Retrieves a user by ID.
-     */
     @Override
-    public UserResponseDTO getUserById(Long id) {
-        return this.userRepository.findById(id)
-                .map(userMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
-    }
+    public AuthResponse updateUserProfile(UserEntity user, UserProfileUpdateRequestDTO requestDTO) {
 
-    /**
-     * Retrieves a paginated list of all users.
-     */
-    @Override
-    public Page<UserResponseDTO> getAllUsers(Pageable pageable) {
-        return this.userRepository.findAll(pageable)
-                .map(userMapper::toResponse);
-    }
-
-    /**
-     * Updates an existing user's information.
-     */
-    @Override
-    public UserResponseDTO updateUser(Long id, UserRequestDTO userRequestDTO) {
-        UserEntity userEntity = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
-
-        modelMapper.map(userRequestDTO, userEntity);
-        if (userRequestDTO.getPassword() != null) {
-            userEntity.setPassword(passwordEncoder.encode(userRequestDTO.getPassword()));
-        }
-
-        if (userRequestDTO.getEmail() != null && !userRequestDTO.getEmail().equals(userEntity.getEmail())) {
-            if (this.userRepository.existsByEmail(userRequestDTO.getEmail())) {
-                throw new IllegalArgumentException("Email already registered.");
+        // Validate email uniqueness if user attempts to change email address
+        if (requestDTO.getEmail() != null && !requestDTO.getEmail().equals(user.getEmail())) {
+            boolean emailExists = this.userRepository.existsByEmail(requestDTO.getEmail());
+            if (emailExists) {
+                throw new IllegalArgumentException("Email is already in use by another user");
             }
         }
-        return this.userMapper.toResponse(this.userRepository.save(userEntity));
-    }
-
-    /**
-     * Deletes a user by ID.
-     */
-    @Override
-    public void deleteUserById(Long id) {
-        if (!this.userRepository.existsById(id)) {
-            throw new IllegalArgumentException("User not found.");
+        if (requestDTO.getUsername() != null && !requestDTO.getUsername().equals(user.getUsername())) {
+            boolean usernameExists = this.userRepository.existsByUsername(requestDTO.getUsername());
+            if (usernameExists) {
+                throw new IllegalArgumentException("Username is already in use by another user");
+            }
+            user.setUsername(requestDTO.getUsername());
         }
-        this.userRepository.deleteById(id);
+        // Perform selective field updates using mapper for consistency
+        this.userMapper.updateEntityFromDto(requestDTO, user);
+
+        // Persist updated user information to database
+        UserEntity updatedUser = this.userRepository.save(user);
+
+        return this.generateAuthResponseForUser(updatedUser, "Profile updated successfully");
     }
 
-    /**
-     * Retrieves the current authenticated user's details.
-     */
     @Override
-    public UserResponseDTO getCurrentUser(UserEntity userEntity) {
-        return this.userMapper.toResponse(userEntity);
+    public AuthResponse changePassword(UserEntity user, ChangePasswordRequestDTO requestDTO) {
+
+        // Validate current password correctness using secure password encoder
+        if (!passwordEncoder.matches(requestDTO.getCurrentPassword(), user.getPassword())) {
+            throw new BadCredentialsException("Current password is incorrect");
+        }
+        // Ensure new password confirmation consistency for user experience
+        if (!requestDTO.getNewPassword().equals(requestDTO.getConfirmPassword())) {
+            throw new IllegalArgumentException("New passwords do not match");
+        }
+        // Prevent password reuse for enhanced security practices
+        if (passwordEncoder.matches(requestDTO.getNewPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("New password must be different from current password");
+        }
+
+        // Set the new password
+        user.setPassword(passwordEncoder.encode(requestDTO.getNewPassword()));
+        this.userRepository.save(user);
+
+        return this.generateAuthResponseForUser(user, "Password changed successfully");
     }
+
+    private AuthResponse generateAuthResponseForUser(UserEntity user, String message) {
+        // Generate new JWT token to reflect any potential critical changes (like username)
+        List<SimpleGrantedAuthority> authorityList = new ArrayList<>();
+
+        user.getRoleList()
+                .forEach(role -> authorityList.add(new SimpleGrantedAuthority("ROLE_".concat(role.getRoleEnum().name()))));
+
+        user.getRoleList().stream()
+                .flatMap(role -> role.getPermissionList().stream())
+                .forEach(permission -> authorityList.add(new SimpleGrantedAuthority(permission.getPermissionEnum().name())));
+
+        // Create authentication token with updated user information
+        Authentication authentication = new UsernamePasswordAuthenticationToken(user.getUsername(), null, authorityList);
+        String newAccessToken = this.jwtUtils.createToken(authentication);
+
+        return new AuthResponse(user.getUsername(), message, newAccessToken, true);
+    }
+
 }
