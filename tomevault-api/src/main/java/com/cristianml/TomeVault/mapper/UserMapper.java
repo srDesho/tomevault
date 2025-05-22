@@ -34,18 +34,12 @@ public class UserMapper {
         modelMapper.typeMap(UserProfileUpdateRequestDTO.class, UserEntity.class)
                 .addMappings(mapper -> {
                     mapper.skip(UserEntity::setId);
-                    mapper.skip(UserEntity::setUsername);
                     mapper.skip(UserEntity::setPassword);
                     mapper.skip(UserEntity::setRoleList);
                     mapper.skip(UserEntity::setEnabled);
                     mapper.skip(UserEntity::setAccountNonExpired);
                     mapper.skip(UserEntity::setAccountNonLocked);
                     mapper.skip(UserEntity::setCredentialsNonExpired);
-                });
-
-        modelMapper.typeMap(UserEntity.class, UserProfileResponseDTO.class)
-                .addMappings(mapper -> {
-                    mapper.skip(UserProfileResponseDTO::setUsername);
                 });
 
 

@@ -29,8 +29,9 @@ public class UserEntity {
     private String lastname;
     private LocalDate birthDate;
 
-    @Column(nullable = false, updatable = false, unique = true)
+    @Column(nullable = false, updatable = true, unique = true)
     private String username;
+    @Column(nullable = false, unique = true)
     private String password;
 
     private boolean enabled;
