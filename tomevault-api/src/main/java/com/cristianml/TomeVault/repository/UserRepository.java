@@ -1,6 +1,8 @@
 package com.cristianml.TomeVault.repository;
 
 import com.cristianml.TomeVault.entity.UserEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,4 +16,5 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     boolean existsByEmail(String email);
 
     Optional<Object> findUserEntityByEmail(String email);
+    Page<UserEntity> findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(String Username, String email, Pageable pageable);
 }

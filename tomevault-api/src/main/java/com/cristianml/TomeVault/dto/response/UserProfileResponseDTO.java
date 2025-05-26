@@ -1,7 +1,9 @@
 package com.cristianml.TomeVault.dto.response;
 
 import lombok.*;
+
 import java.time.LocalDate;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -16,4 +18,5 @@ public class UserProfileResponseDTO {
     private String lastname;
     private String address;
     private LocalDate birthDate;
+    private Set<String> Roles;
 }

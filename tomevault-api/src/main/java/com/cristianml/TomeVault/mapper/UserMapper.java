@@ -1,15 +1,16 @@
 package com.cristianml.TomeVault.mapper;
 
+import com.cristianml.TomeVault.dto.request.UserCreateRequestDTO;
 import com.cristianml.TomeVault.dto.request.UserProfileUpdateRequestDTO;
 import com.cristianml.TomeVault.dto.request.UserRegistrationRequestDTO;
-import com.cristianml.TomeVault.dto.request.UserRequestDTO;
 import com.cristianml.TomeVault.dto.response.UserProfileResponseDTO;
-import com.cristianml.TomeVault.dto.response.UserResponseDTO;
 import com.cristianml.TomeVault.entity.UserEntity;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Component;
+
+import java.util.stream.Collectors;
 
 @Component
 @RequiredArgsConstructor
@@ -17,9 +18,10 @@ public class UserMapper {
 
     private final ModelMapper modelMapper;
 
-    // Custom
+    // Custom configuration for modelMapper
     @PostConstruct
     public void configureMappings() {
+        // Configuration for UserRegistrationRequestDTO to UserEntity
         modelMapper.typeMap(UserRegistrationRequestDTO.class, UserEntity.class)
                 .addMappings(mapper -> {
                    mapper.skip(UserEntity::setId);
@@ -31,6 +33,7 @@ public class UserMapper {
                    mapper.skip(UserEntity::setCredentialsNonExpired);
                 });
 
+        // Configuration for UserProfileUpdateRequestDTO to UserEntity
         modelMapper.typeMap(UserProfileUpdateRequestDTO.class, UserEntity.class)
                 .addMappings(mapper -> {
                     mapper.skip(UserEntity::setId);
@@ -41,13 +44,33 @@ public class UserMapper {
                     mapper.skip(UserEntity::setAccountNonLocked);
                     mapper.skip(UserEntity::setCredentialsNonExpired);
                 });
-
+        // Configuration for UserCreateRequestDTO to UserEntity (for admin operations)
+        modelMapper.typeMap(UserCreateRequestDTO.class, UserEntity.class)
+                .addMappings(mapper -> {
+                    mapper.skip(UserEntity::setId);
+                    mapper.skip(UserEntity::setPassword);
+                    mapper.skip(UserEntity::setRoleList);
+                    mapper.skip(UserEntity::setEnabled);
+                    mapper.skip(UserEntity::setAccountNonExpired);
+                    mapper.skip(UserEntity::setAccountNonLocked);
+                    mapper.skip(UserEntity::setCredentialsNonExpired);
+                });
+        // Configuration for UserEntity to UserProfileResponseDTO with custom role mapping
+        modelMapper.typeMap(UserEntity.class, UserProfileResponseDTO.class)
+                .addMappings(mapper -> {
+                   mapper.skip(UserProfileResponseDTO::setRoles);
+                });
 
     }
 
-    // to entity
+    // to entity from registration
     public UserEntity toEntity(UserRegistrationRequestDTO  requestDTO) {
         return modelMapper.map(requestDTO, UserEntity.class);
+    }
+
+    // to entity from admin create request
+    public UserEntity toEntity(UserCreateRequestDTO userCreateRequestDTO) {
+        return modelMapper.map(userCreateRequestDTO, UserEntity.class);
     }
 
     // Maps a UserProfileUpdateRequestDTO to an existing UserEntity.
@@ -57,7 +80,15 @@ public class UserMapper {
 
     // toProfileResponse
     public UserProfileResponseDTO toProfileResponse(UserEntity user) {
-        return modelMapper.map(user, UserProfileResponseDTO.class);
+        UserProfileResponseDTO responseDTO = modelMapper.map(user, UserProfileResponseDTO.class);
+
+        // Manually map roles to string set for easy frontend consumption
+        if (user.getRoleList() != null) {
+            responseDTO.setRoles(user.getRoleList().stream()
+                    .map(role -> role.getRoleEnum().name())
+                    .collect(Collectors.toSet()));
+        }
+        return responseDTO;
     }
 
 }

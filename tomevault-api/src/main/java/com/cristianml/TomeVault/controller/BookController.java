@@ -2,7 +2,6 @@ package com.cristianml.TomeVault.controller;
 
 import com.cristianml.TomeVault.dto.request.BookRequestDTO;
 import com.cristianml.TomeVault.dto.response.BookResponseDTO;
-import com.cristianml.TomeVault.entity.UserEntity;
 import com.cristianml.TomeVault.exception.ResourceNotFoundException;
 import com.cristianml.TomeVault.security.config.CustomUserDetails;
 import com.cristianml.TomeVault.service.IBookService;
