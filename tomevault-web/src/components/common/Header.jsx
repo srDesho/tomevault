@@ -62,6 +62,16 @@ const Header = ({ isLoggedIn, onLogout }) => {
           >
             Buscar
           </Link>
+          {/* Link to Settings page (only when logged in). */}
+          {isLoggedIn && (
+            <Link 
+              to="/settings" 
+              className="p-2 text-gray-300 hover:text-white text-sm sm:text-base transition duration-200 w-full text-center xl:w-auto"
+              onClick={handleLinkClick}
+            >
+              Ajustes
+            </Link>
+          )}
           {/* Login/Logout button. */}
           {isLoggedIn ? (
             <button 

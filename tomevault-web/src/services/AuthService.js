@@ -1,8 +1,8 @@
 
 // This service handles authentication logic using JWT (JSON Web Tokens).
-const BACKEND_BASE_URL = 'http://localhost:8080/api/v1'; // Base URL for your backend
+export const BACKEND_BASE_URL = 'http://localhost:8080/api/v1'; // Base URL for your backend
 
-const TOKEN_KEY = 'jwtToken'; // Key for storing the JWT in localStorage
+export const TOKEN_KEY = 'jwtToken'; // Key for storing the JWT in localStorage
 
 // Attempts to log in with the provided username and password.
 export const login = async (username, password) => {

@@ -1,13 +1,13 @@
 package com.cristianml.TomeVault;
 
-import com.cristianml.TomeVault.entity.UserEntity;
-import com.cristianml.TomeVault.repository.PersmissionRepository;
-import com.cristianml.TomeVault.repository.RoleRepository;
-import com.cristianml.TomeVault.repository.UserRepository;
-import com.cristianml.TomeVault.security.entity.PermissionEntity;
-import com.cristianml.TomeVault.security.entity.PermissionEnum;
-import com.cristianml.TomeVault.security.entity.RoleEntity;
-import com.cristianml.TomeVault.security.entity.RoleEnum;
+import com.cristianml.TomeVault.entities.UserEntity;
+import com.cristianml.TomeVault.repositories.PersmissionRepository;
+import com.cristianml.TomeVault.repositories.RoleRepository;
+import com.cristianml.TomeVault.repositories.UserRepository;
+import com.cristianml.TomeVault.security.entities.PermissionEntity;
+import com.cristianml.TomeVault.security.entities.PermissionEnum;
+import com.cristianml.TomeVault.security.entities.RoleEntity;
+import com.cristianml.TomeVault.security.entities.RoleEnum;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;

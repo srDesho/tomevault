@@ -47,8 +47,8 @@ const HomePage = ({ myBooks, isLoading, refreshBooks }) => {
       {isLoading ? (
         <LoadingSpinner />
       ) : activeBooks.length > 0 ? (
-        <BookList 
-          books={activeBooks} 
+        <BookList
+          books={activeBooks}
           isSearchList={false}
           emptyMessage={null}
           onDelete={(id) => {
@@ -61,8 +61,8 @@ const HomePage = ({ myBooks, isLoading, refreshBooks }) => {
         <div className="col-span-full py-12 text-center">
           <div className="bg-gray-800 p-6 rounded-lg inline-block">
             <p className="text-gray-400 mb-4">No tienes libros en tu colección</p>
-            <a 
-              href="/search" 
+            <a
+              href="/search"
               className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors"
             >
               Agregar mi primer libro
@@ -82,7 +82,7 @@ const HomePage = ({ myBooks, isLoading, refreshBooks }) => {
               "{bookToDelete.title}" se eliminará de tu colección.
             </p>
             <div className="flex justify-center gap-4">
-              <button 
+              <button
                 onClick={() => {
                   handleDelete(bookToDelete.id);
                 }}
@@ -90,7 +90,7 @@ const HomePage = ({ myBooks, isLoading, refreshBooks }) => {
               >
                 Eliminar
               </button>
-              <button 
+              <button
                 onClick={() => setShowDeleteModal(false)}
                 className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition"
               >

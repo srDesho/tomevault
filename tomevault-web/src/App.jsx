@@ -1,45 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Header from './components/common/Header'; // Ruta corregida
-import HomePage from './pages/HomePage'; // Ruta corregida
-import SearchPage from './pages/SearchPage'; // Ruta corregida
-import BookDetailPage from './pages/BookDetailPage'; // Ruta corregida
-import LoginPage from './pages/LoginPage'; // Ruta corregida
-import RegisterPage from './pages/RegisterPage'; // Ruta corregida
-import * as BookService from './services/BookService'; // Ruta corregida
-import * as AuthService from './services/AuthService'; // Ruta corregida
+import Header from './components/common/Header';
+import HomePage from './pages/HomePage';
+import SearchPage from './pages/SearchPage';
+import BookDetailPage from './pages/BookDetailPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import UserSettingsPage from './pages/UserSettingsPage'; // Importa el nuevo componente
+import * as BookService from './services/BookService';
+import * as AuthService from './services/AuthService';
 
-import './App.css'; // Ruta corregida
-import './index.css'; // Ruta corregida
+import './App.css';
+import './index.css';
 
 const App = () => {
-  // Estado para el estado de inicio de sesión del usuario
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(AuthService.isAuthenticated());
-  // Estado para la colección de libros del usuario
   const [myBooks, setMyBooks] = useState([]);
-  // Estado para indicar si los libros del usuario están cargando
   const [isLoadingMyBooks, setIsLoadingMyBooks] = useState(true);
 
-  // Maneja el inicio de sesión exitoso del usuario
   const handleLoginSuccess = () => {
     setIsUserLoggedIn(true);
     fetchMyBooks();
   };
 
-  // Maneja el cierre de sesión del usuario
   const handleLogout = () => {
     AuthService.logout();
     setIsUserLoggedIn(false);
     setMyBooks([]);
   };
 
-  // Obtiene asincrónicamente los libros del usuario
   const fetchMyBooks = async () => {
     setIsLoadingMyBooks(true);
     try {
       if (AuthService.isAuthenticated()) {
         const books = await BookService.getMyBooks();
-        // Asegura que books.content o books sea un array
         setMyBooks(Array.isArray(books.content) ? books.content : books);
       } else {
         setMyBooks([]);
@@ -52,19 +46,17 @@ const App = () => {
     }
   };
 
-  // Efecto para obtener libros al montar o al cambiar el estado de inicio de sesión
   useEffect(() => {
     fetchMyBooks();
-  }, [isUserLoggedIn]); // Asegura que los libros se recarguen cuando cambia el estado de inicio de sesión
+  }, [isUserLoggedIn]);
 
-  // Maneja la adición de un libro desde la página de búsqueda
   const handleAddBookFromSearch = async (bookGoogleId) => {
     if (!isUserLoggedIn) {
       throw new Error("Debes iniciar sesión para añadir libros a tu colección.");
     }
     try {
       const addedBook = await BookService.saveBookFromGoogle(bookGoogleId);
-      fetchMyBooks(); // Recarga mis libros para HomePage
+      fetchMyBooks();
       return addedBook;
     } catch (error) {
       throw error;
@@ -74,22 +66,19 @@ const App = () => {
   return (
     <Router>
       <div className="min-h-screen flex flex-col bg-gray-900 font-sans text-gray-100">
-        {/* Pasa el estado de inicio de sesión y la función de cierre de sesión al Header */}
         <Header isLoggedIn={isUserLoggedIn} onLogout={handleLogout} />
         <main className="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Routes>
-            {/* Ruta para la página de inicio */}
             <Route
               path="/"
               element={
                 <HomePage
                   myBooks={myBooks}
                   isLoading={isLoadingMyBooks}
-                  refreshBooks={fetchMyBooks} // Cambio clave aquí!
+                  refreshBooks={fetchMyBooks}
                 />
               }
             />
-            {/* Ruta para la página de búsqueda */}
             <Route
               path="/search"
               element={<SearchPage
@@ -97,15 +86,13 @@ const App = () => {
                 onAdd={handleAddBookFromSearch}
               />}
             />
-            {/* Ruta para la página de detalles del libro */}
             <Route path="/books/:bookId" element={<BookDetailPage />} />
-            {/* Ruta para la página de inicio de sesión */}
             <Route
               path="/login"
               element={<LoginPage onLoginSuccess={handleLoginSuccess} />}
             />
-            {/* Nueva ruta para la página de registro */}
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/settings" element={<UserSettingsPage />} /> {/* Nueva ruta para ajustes */}
           </Routes>
         </main>
       </div>

@@ -2,8 +2,8 @@ package com.cristianml.TomeVault.security.config.filter;
 
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.cristianml.TomeVault.entity.UserEntity;
-import com.cristianml.TomeVault.repository.UserRepository;
+import com.cristianml.TomeVault.entities.UserEntity;
+import com.cristianml.TomeVault.repositories.UserRepository;
 import com.cristianml.TomeVault.security.config.CustomUserDetails;
 import com.cristianml.TomeVault.utilities.JwtUtils;
 import jakarta.servlet.FilterChain;

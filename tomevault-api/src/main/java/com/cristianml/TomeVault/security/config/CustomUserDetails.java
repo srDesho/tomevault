@@ -1,6 +1,6 @@
 package com.cristianml.TomeVault.security.config;
 
-import com.cristianml.TomeVault.entity.UserEntity;
+import com.cristianml.TomeVault.entities.UserEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

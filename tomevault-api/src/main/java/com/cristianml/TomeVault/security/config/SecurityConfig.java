@@ -1,7 +1,7 @@
 package com.cristianml.TomeVault.security.config;
 
 import com.cristianml.TomeVault.security.config.filter.JwtTokenValidator;
-import com.cristianml.TomeVault.security.service.UserDetailsServiceImpl;
+import com.cristianml.TomeVault.security.services.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
