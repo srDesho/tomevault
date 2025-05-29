@@ -7,15 +7,20 @@ const BACKEND_BASE_URL = 'http://localhost:8080/api/v1';
 
 // Utility function for API calls with exponential backoff retry logic.
 const fetchWithRetry = async (url, options = {}, retries = 3, delay = 1000) => {
-  // Adds authorization header to each request if available.
+  // Siempre obtenemos el encabezado actual
   const authHeader = getAuthHeader();
+
+  // Fusionamos los headers: los del llamador tienen prioridad, pero forzamos el auth si existe
+  const finalHeaders = new Headers(options.headers);
+
+  if (authHeader) {
+    finalHeaders.set('Authorization', authHeader);
+  }
+  finalHeaders.set('Content-Type', 'application/json');
+
   const newOptions = {
     ...options,
-    headers: {
-      ...options.headers,
-      'Content-Type': 'application/json',
-      ...(authHeader && { 'Authorization': authHeader })
-    },
+    headers: finalHeaders,
   };
 
   for (let i = 0; i < retries; i++) {

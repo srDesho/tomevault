@@ -8,7 +8,7 @@ const BookList = ({ books, isSearchList, emptyMessage, onAdd, onDelete }) => {
         {books.length > 0 ? (
           books.map(book => (
             <BookCard 
-              key={book.id} 
+              key={book.googleBookId || book.id || Math.random()} // ✅ Asegura key única
               book={book} 
               isSearchList={isSearchList} 
               onAdd={onAdd}

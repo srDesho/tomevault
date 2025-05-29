@@ -1,124 +1,95 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import * as AuthService from '../services/AuthService'; // Ensure this path is correct
-import { User, Lock } from 'lucide-react'; // Import necessary icons
+import { login } from '../services/AuthService';
 
 const LoginPage = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  // Handles the submission of the login form.
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
-    setIsLoading(true);
+    setError('');
+    setLoading(true);
 
     try {
-      // Calls the authentication service to log in.
-      const success = await AuthService.login(username, password); // Using real AuthService
-      
+      const success = await login(username, password);
       if (success) {
-        onLoginSuccess(); // Notifies the parent component (App) of success.
-        navigate('/'); // Redirects the user to the homepage.
-      } else {
-        setError('Credenciales inválidas. Por favor, inténtalo de nuevo.');
+        // ✅ Aseguramos que onLoginSuccess sea una función antes de llamarla
+        if (onLoginSuccess && typeof onLoginSuccess === 'function') {
+          onLoginSuccess();
+        } else {
+          // Opcional: recargar o redirigir si no hay callback
+          window.location.href = '/';
+        }
       }
     } catch (err) {
-      console.error('Error durante el inicio de sesión:', err);
-      setError(err.message || 'Ocurrió un error al iniciar sesión. Inténtalo más tarde.');
+      setError(err.message);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center p-4">
-      {/* Added hover:scale-105 effect for zoom */}
-      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full transform transition-all duration-300 hover:scale-105">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-extrabold text-gray-900">Bienvenido de Nuevo</h2>
-          <p className="mt-2 text-sm text-gray-600">Inicia sesión en tu cuenta</p>
-        </div>
+    <div className="flex items-center justify-center min-h-screen bg-gray-900">
+      <div className="w-full max-w-md p-8 space-y-6 bg-gray-800 rounded-lg shadow-lg">
+        <h2 className="text-3xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
+          Iniciar Sesión
+        </h2>
 
-        {/* Displays error messages. */}
         {error && (
-          <div className="bg-red-500 text-white p-3 rounded-md mb-4 text-center">
+          <div className="p-3 text-sm text-center text-red-400 bg-red-900 bg-opacity-50 rounded">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label htmlFor="username" className="sr-only">Usuario</label>
-            <div className="relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <User className="h-5 w-5 text-gray-400" aria-hidden="true" />
-              </div>
-              <input
-                type="text"
-                id="username"
-                name="username"
-                // Added text-gray-900 to ensure text visibility when typing
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
-                placeholder="Nombre de Usuario"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
+            <label htmlFor="username" className="block text-sm font-medium text-gray-300">
+              Nombre de usuario
+            </label>
+            <input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-4 py-2 mt-1 text-white bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Tu usuario"
+              disabled={loading}
+              required
+            />
           </div>
+
           <div>
-            <label htmlFor="password" className="sr-only">Contraseña</label>
-            <div className="relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="h-5 w-5 text-gray-400" aria-hidden="true" />
-              </div>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                // Added text-gray-900 to ensure text visibility when typing
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm text-gray-900"
-                placeholder="Contraseña"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading}
-              />
-            </div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-300">
+              Contraseña
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-2 mt-1 text-white bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Tu contraseña"
+              disabled={loading}
+              required
+            />
           </div>
-          <div className="flex items-center justify-between">
-            <div className="text-sm">
-              <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
-                ¿Olvidaste tu contraseña?
-              </a>
-            </div>
-          </div>
-          {/* Submit button for the form. */}
-          <div>
-            <button
-              type="submit"
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Iniciando Sesión...' : 'Iniciar Sesión'}
-            </button>
-          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            {loading ? 'Cargando...' : 'Iniciar Sesión'}
+          </button>
         </form>
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
-            ¿No tienes una cuenta?{' '}
-            <button
-              onClick={() => navigate('/register')}
-              className="font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none"
-            >
-              Regístrate ahora
-            </button>
-          </p>
+
+        <div className="text-sm text-center text-gray-400">
+          ¿No tienes cuenta?{' '}
+          <a href="/register" className="text-blue-400 hover:underline">
+            Regístrate
+          </a>
         </div>
       </div>
     </div>

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import BookList from '../components/books/BookList';
-import LoadingSpinner from '../components/common/LoadingSpinner';
 import * as BookService from '../services/BookService';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 
-const HomePage = ({ myBooks, isLoading, refreshBooks }) => {
+const HomePage = ({ myBooks = [], isLoading, refreshBooks }) => {
   const [notification, setNotification] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [bookToDelete, setBookToDelete] = useState(null);
@@ -27,8 +27,11 @@ const HomePage = ({ myBooks, isLoading, refreshBooks }) => {
     }
   };
 
+  // Aseguramos que myBooks sea un array
+  const safeBooks = Array.isArray(myBooks) ? myBooks : [];
+
   // Filtrar solo libros activos
-  const activeBooks = myBooks.filter(book => book.active !== false);
+  const activeBooks = safeBooks.filter(book => book.active !== false);
 
   return (
     <div className="w-full">
@@ -58,7 +61,7 @@ const HomePage = ({ myBooks, isLoading, refreshBooks }) => {
           }}
         />
       ) : (
-        <div className="col-span-full py-12 text-center">
+        <div className="py-12 text-center">
           <div className="bg-gray-800 p-6 rounded-lg inline-block">
             <p className="text-gray-400 mb-4">No tienes libros en tu colección</p>
             <a
@@ -83,9 +86,7 @@ const HomePage = ({ myBooks, isLoading, refreshBooks }) => {
             </p>
             <div className="flex justify-center gap-4">
               <button
-                onClick={() => {
-                  handleDelete(bookToDelete.id);
-                }}
+                onClick={() => handleDelete(bookToDelete.id)}
                 className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition"
               >
                 Eliminar
