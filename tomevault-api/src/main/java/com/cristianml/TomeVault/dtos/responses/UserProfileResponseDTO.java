@@ -18,5 +18,6 @@ public class UserProfileResponseDTO {
     private String lastname;
     private String address;
     private LocalDate birthDate;
-    private Set<String> Roles;
+    private Set<String> roles;
+    private boolean enabled;
 }

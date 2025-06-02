@@ -36,27 +36,33 @@ const Header = () => {
           ${isMenuOpen ? 'flex flex-col absolute top-full right-0 bg-gray-700 w-48 py-2 shadow-lg rounded-b-lg items-center space-x-0 space-y-2 z-40' : 'hidden'} 
           xl:static xl:w-auto xl:py-0 xl:shadow-none xl:rounded-none xl:flex-row xl:space-y-0
         `}>
-          {!isAdmin ? (
-            <>
-              <Link to="/" className="p-2 text-gray-300 hover:text-white text-sm sm:text-base transition duration-200 w-full text-center xl:w-auto" onClick={handleLinkClick}>
-                Mis Libros
-              </Link>
-              <Link to="/search" className="p-2 text-gray-300 hover:text-white text-sm sm:text-base transition duration-200 w-full text-center xl:w-auto" onClick={handleLinkClick}>
-                Buscar
-              </Link>
-            </>
-          ) : (
+          {/* Todos los usuarios autenticados ven "Mis Libros" */}
+          {isAuthenticated() && (
+            <Link to="/" className="p-2 text-gray-300 hover:text-white text-sm sm:text-base transition duration-200 w-full text-center xl:w-auto" onClick={handleLinkClick}>
+              Mis Libros
+            </Link>
+          )}
+
+          {/* Todos pueden ver "Buscar" */}
+          <Link to="/search" className="p-2 text-gray-300 hover:text-white text-sm sm:text-base transition duration-200 w-full text-center xl:w-auto" onClick={handleLinkClick}>
+            Buscar
+          </Link>
+
+          {/* Solo admins ven "Panel de Admin" */}
+          {isAdmin && (
             <Link to="/admin/users" className="p-2 text-red-300 hover:text-red-100 font-semibold text-sm sm:text-base transition duration-200 w-full text-center xl:w-auto" onClick={handleLinkClick}>
               Panel de Admin
             </Link>
           )}
 
+          {/* Todos los usuarios autenticados ven "Ajustes" */}
           {isAuthenticated() && (
             <Link to="/settings" className="p-2 text-gray-300 hover:text-white text-sm sm:text-base transition duration-200 w-full text-center xl:w-auto" onClick={handleLinkClick}>
               Ajustes
             </Link>
           )}
 
+          {/* Login / Logout */}
           {isAuthenticated() ? (
             <button 
               className="text-red-400 hover:text-red-300 text-sm sm:text-base transition-colors w-full text-center py-2 px-3 sm:px-4 xl:w-auto"

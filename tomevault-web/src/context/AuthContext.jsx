@@ -1,3 +1,4 @@
+// src/context/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as AuthService from '../services/AuthService';
 
@@ -16,14 +17,14 @@ export const AuthProvider = ({ children }) => {
         if (profile) {
           setUser(JSON.parse(profile));
         } else {
-          // Si no hay perfil, asumimos que es USER (opcional: hacer fetch)
+          // Fallback: decode JWT to get basic info
           const token = AuthService.getJwt();
           if (token) {
-            // Decodificar JWT si quieres obtener datos básicos (opcional)
             try {
               const payload = JSON.parse(atob(token.split('.')[1]));
               setUser({ username: payload.sub, roles: ['USER'] });
-            } catch {
+            } catch (err) {
+              console.warn('[AuthContext] Failed to decode JWT payload:', err);
               setUser({ roles: ['USER'] });
             }
           }
@@ -37,25 +38,29 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
+  /**
+   * Logs in the user and updates the context state.
+   * @param {string} username - The username.
+   * @param {string} password - The password.
+   * @returns {Promise<boolean>} True if login is successful.
+   */
   const login = async (username, password) => {
     const success = await AuthService.login(username, password);
     if (success) {
-      // Intentamos obtener el perfil
-      const profile = await fetch(`${AuthService.BACKEND_BASE_URL}/user/profile`, {
-        headers: { 'Authorization': AuthService.getAuthHeader() }
-      }).then(res => res.ok ? res.json() : null);
-
+      const profile = localStorage.getItem('userProfile');
       if (profile) {
-        localStorage.setItem('userProfile', JSON.stringify(profile));
-        setUser(profile);
+        setUser(JSON.parse(profile));
       } else {
-        // Fallback
+        // Minimal fallback
         setUser({ username, roles: ['USER'] });
       }
     }
     return success;
   };
 
+  /**
+   * Logs out the user and clears the context state.
+   */
   const logout = () => {
     AuthService.logout();
     setUser(null);

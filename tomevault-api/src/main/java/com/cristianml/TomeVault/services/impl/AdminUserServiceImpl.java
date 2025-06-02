@@ -136,7 +136,6 @@ public class AdminUserServiceImpl implements IAdminUserService {
     @Override
     @Transactional
     public UserProfileResponseDTO updateUserRoles(Long userId, List<String> newRoleNames) {
-        System.out.println("=======================================================");
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         logger.debug("User found:", user.getUsername());

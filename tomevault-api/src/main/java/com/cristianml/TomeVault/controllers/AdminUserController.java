@@ -98,6 +98,7 @@ public class AdminUserController {
 
     // Updates a user's roles.
     @PutMapping("/{id}/roles")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<UserProfileResponseDTO> updateUserRoles(
             @PathVariable Long id,
             @Valid @RequestBody UserRoleUpdateRequestDTO userRoleUpdateRequestDTO) {

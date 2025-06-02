@@ -1,4 +1,4 @@
-  import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/common/Header';
 import HomePage from './pages/HomePage';
@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import UserSettingsPage from './pages/UserSettingsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
+import EditUserPage from './pages/EditUserPage';
 import * as BookService from './services/BookService';
 import * as AuthService from './services/AuthService';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -40,13 +41,12 @@ const App = () => {
     fetchMyBooks();
   }, []);
 
-  // Función que se pasa a SearchPage
   const handleAddBookFromSearch = async (googleBookId) => {
     if (!AuthService.isAuthenticated()) {
       throw new Error("Debes iniciar sesión.");
     }
     const addedBook = await BookService.saveBookFromGoogle(googleBookId);
-    fetchMyBooks(); // Refresca la lista
+    fetchMyBooks();
     return addedBook;
   };
 
@@ -60,10 +60,11 @@ const App = () => {
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
 
+              {/* ✅ Todos los usuarios autenticados, incluidos admins, ven HomePage */}
               <Route
                 path="/"
                 element={
-                  <ProtectedRoute redirectIfAdmin="/admin/users">
+                  <ProtectedRoute>
                     <HomePage
                       myBooks={myBooks}
                       isLoading={isLoadingMyBooks}
@@ -82,6 +83,7 @@ const App = () => {
                 }
               />
 
+              {/* ✅ Solo admins pueden ver esta ruta */}
               <Route
                 path="/admin/users"
                 element={
@@ -91,13 +93,17 @@ const App = () => {
                 }
               />
 
-              {/* ✅ Aquí está la corrección: pasamos onAdd e isLoggedIn */}
               <Route
-                path="/search"
+                path="/admin/users/:id/edit"
                 element={
-                  <SearchPage onAdd={handleAddBookFromSearch} />
+                  <AdminRoute>
+                    <EditUserPage />
+                  </AdminRoute>
                 }
               />
+
+              {/* ✅ Búsqueda pública */}
+              <Route path="/search" element={<SearchPage onAdd={handleAddBookFromSearch} />} />
 
               <Route path="/books/:bookId" element={<BookDetailPage />} />
 
@@ -110,19 +116,14 @@ const App = () => {
   );
 };
 
-// Rutas protegidas
-const ProtectedRoute = ({ children, redirectIfAdmin }) => {
-  const { user, isAuthenticated } = useAuth();
+// ✅ Solo verifica autenticación
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
   if (!isAuthenticated()) return <Navigate to="/login" />;
-
-  const isAdmin = user?.roles?.some(r => ['ADMIN', 'SUPER_ADMIN'].includes(r));
-  if (redirectIfAdmin && isAdmin) {
-    return <Navigate to={redirectIfAdmin} />;
-  }
-
   return children;
 };
 
+// ✅ Solo permite acceso a admins
 const AdminRoute = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
   if (!isAuthenticated()) return <Navigate to="/login" />;

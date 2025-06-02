@@ -1,46 +1,72 @@
+// src/services/AuthService.js
 
-// This service handles authentication logic using JWT (JSON Web Tokens).
-export const BACKEND_BASE_URL = 'http://localhost:8080/api/v1'; // Base URL for your backend
+// Base URL for the backend API.
+export const BACKEND_BASE_URL = 'http://localhost:8080/api/v1';
 
-export const TOKEN_KEY = 'jwtToken'; // Key for storing the JWT in localStorage
+// Key for storing the JWT in localStorage.
+export const TOKEN_KEY = 'jwtToken';
 
-// Attempts to log in with the provided username and password.
+/**
+ * Attempts to log in with the provided username and password.
+ * @param {string} username - The user's username.
+ * @param {string} password - The user's password.
+ * @returns {Promise<boolean>} True if login is successful, false otherwise.
+ * @throws {Error} If login fails due to invalid credentials or network issues.
+ */
 export const login = async (username, password) => {
-  console.log(`[AuthService] Attempting to log in with user: ${username}`); // Detailed log
-  console.log(`[AuthService] Login URL: ${BACKEND_BASE_URL}/auth/login`); // Log the URL
+  console.log(`[AuthService] Attempting to log in with user: ${username}`);
+  console.log(`[AuthService] Login URL: ${BACKEND_BASE_URL}/auth/login`);
 
   try {
     const response = await fetch(`${BACKEND_BASE_URL}/auth/login`, {
-      method: 'POST', // HTTP method for the login endpoint.
+      method: 'POST',
       headers: {
-        'Content-Type': 'application/json', // Backend expects JSON body
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ username, password }), // Send credentials as JSON body
+      body: JSON.stringify({ username, password }),
     });
 
-    console.log(`[AuthService] Login response status: ${response.status}`); // Log response status
+    console.log(`[AuthService] Login response status: ${response.status}`);
 
     if (response.ok) {
-      const data = await response.json(); // Parse the JSON response
+      const data = await response.json();
       if (data.jwt) {
-        localStorage.setItem(TOKEN_KEY, data.jwt); // Store the JWT
+        // Store the JWT token
+        localStorage.setItem(TOKEN_KEY, data.jwt);
         console.log('[AuthService] Login successful. JWT stored.');
-        return true; // Indicates success.
+
+        // Fetch user profile to get roles and other details
+        const profileResponse = await fetch(`${BACKEND_BASE_URL}/user`, {
+          headers: { 'Authorization': `Bearer ${data.jwt}` }
+        });
+
+        if (profileResponse.ok) {
+          const userProfile = await profileResponse.json();
+          localStorage.setItem('userProfile', JSON.stringify(userProfile));
+          console.log('[AuthService] User profile stored:', userProfile);
+        } else {
+          // Fallback: create minimal profile
+          const fallbackProfile = { username, roles: ['USER'] };
+          localStorage.setItem('userProfile', JSON.stringify(fallbackProfile));
+          console.log('[AuthService] Used fallback profile due to profile fetch failure.');
+        }
+
+        return true;
       } else {
         console.error('[AuthService] Login successful, but no JWT received.');
-        throw new Error('No se recibió el token de autenticación.');
+        throw new Error('Authentication token was not received.');
       }
     } else if (response.status === 401) {
       console.warn('[AuthService] Login failed: Invalid credentials.');
-      throw new Error('Credenciales inválidas. Por favor, inténtalo de nuevo.');
+      throw new Error('Invalid credentials. Please try again.');
     } else {
       const errorBody = await response.text();
       console.error('[AuthService] Error during login:', response.status, errorBody);
-      throw new Error(`Error ${response.status}: ${errorBody || 'Error desconocido'}`);
+      throw new Error(`Error ${response.status}: ${errorBody || 'Unknown error'}`);
     }
   } catch (error) {
     console.error('[AuthService] Network or unexpected error during login:', error);
-    throw new Error(error.message || 'No se pudo conectar al servidor de autenticación.');
+    throw new Error(error.message || 'Failed to connect to the authentication server.');
   }
 };
 
@@ -51,8 +77,8 @@ export const login = async (username, password) => {
  * @throws {Error} If registration fails due to network issues or backend errors.
  */
 export const register = async (userData) => {
-  console.log('[AuthService] Attempting to register user:', userData.email); // Log the email being registered
-  console.log(`[AuthService] Register URL: ${BACKEND_BASE_URL}/auth/sign-up`); // Log the register URL
+  console.log('[AuthService] Attempting to register user:', userData.email);
+  console.log(`[AuthService] Register URL: ${BACKEND_BASE_URL}/auth/sign-up`);
 
   try {
     const response = await fetch(`${BACKEND_BASE_URL}/auth/sign-up`, {
@@ -60,22 +86,19 @@ export const register = async (userData) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(userData), // Send user data as JSON
+      body: JSON.stringify(userData),
     });
 
-    console.log(`[AuthService] Register response status: ${response.status}`); // Log response status
+    console.log(`[AuthService] Register response status: ${response.status}`);
 
-    if (response.status === 201) { // Assuming 201 Created for successful registration
+    if (response.status === 201) {
       const data = await response.json();
       console.log('[AuthService] Registration successful:', data);
-      // Depending on your backend, you might receive a JWT here too,
-      // or you might expect the user to log in after registration.
-      // For now, we'll just indicate success.
       return true;
     } else {
       const errorBody = await response.text();
       console.error('[AuthService] Registration failed:', response.status, errorBody);
-      let errorMessage = 'Fallo en el registro.';
+      let errorMessage = 'Registration failed.';
       try {
         const errorData = JSON.parse(errorBody);
         if (errorData.message) {
@@ -84,36 +107,46 @@ export const register = async (userData) => {
           errorMessage = errorData.errors.map(err => err.defaultMessage || err.message).join(', ');
         }
       } catch (parseError) {
-        // If errorBody is not JSON, use it as is
-        errorMessage = errorBody || 'Error desconocido durante el registro.';
+        errorMessage = errorBody || 'Unknown error during registration.';
       }
       throw new Error(errorMessage);
     }
   } catch (error) {
     console.error('[AuthService] Network or unexpected error during registration:', error);
-    throw new Error(error.message || 'No se pudo conectar al servidor de registro.');
+    throw new Error(error.message || 'Failed to connect to the registration server.');
   }
 };
 
-// Logs out the user by removing the JWT from storage.
+/**
+ * Logs out the user by removing the JWT from localStorage.
+ */
 export const logout = () => {
   console.log('[AuthService] Logging out. Removing JWT.');
-  localStorage.removeItem(TOKEN_KEY); // Remove the JWT
-  // No need to invalidate on backend for stateless JWTs, but a revoke list could be implemented for stronger security.
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem('userProfile'); // Also remove profile on logout
 };
 
-// Retrieves the JWT from localStorage.
+/**
+ * Retrieves the JWT from localStorage.
+ * @returns {string|null} The JWT token or null if not present.
+ */
 export const getJwt = () => {
   return localStorage.getItem(TOKEN_KEY);
 };
 
-// Checks if the user is currently logged in by checking for the JWT.
+/**
+ * Checks if the user is currently logged in.
+ * @returns {boolean} True if the user is authenticated, false otherwise.
+ */
 export const isAuthenticated = () => {
   return getJwt() !== null;
 };
 
-// Retrieves the Authorization header for API requests.
+/**
+ * Retrieves the Authorization header for API requests.
+ * @returns {string|null} The "Bearer <token>" header or null if not authenticated.
+ */
 export const getAuthHeader = () => {
   const jwt = getJwt();
-  return jwt ? `Bearer ${jwt}` : null; // Return "Bearer <JWT>"
+  return jwt ? `Bearer ${jwt}` : null;
 };
