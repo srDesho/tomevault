@@ -36,4 +36,6 @@ public interface BookRepository extends JpaRepository<BookEntity, Long> {
     Optional<BookEntity> findByGoogleBookIdAndUserAndIsActiveFalse(String googleBookId, UserEntity user);
 
     boolean existsByGoogleBookIdAndUserAndIsActiveTrue(String googleBookId, UserEntity user);
+
+    boolean existsByGoogleBookIdAndUserAndIsActiveFalse(String googleBookId, UserEntity userEntity);
 }

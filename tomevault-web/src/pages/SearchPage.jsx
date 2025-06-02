@@ -17,6 +17,8 @@ const SearchPage = ({ onAdd }) => {
   const [hasSearched, setHasSearched] = useState(false);
   const [searchErrorMessage, setSearchErrorMessage] = useState(null);
   const [addBookMessage, setAddBookMessage] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [currentBook, setCurrentBook] = useState(null);
 
   // Limpia mensajes después de 3 segundos
   useEffect(() => {
@@ -96,9 +98,55 @@ const SearchPage = ({ onAdd }) => {
     navigate(`?query=${encodeURIComponent(searchTerm)}`);
   };
 
+  // FUNCIONES PARA EL MODAL - CORREGIDAS
+  const handleKeepProgress = async () => {
+    try {
+      const activated = await BookService.activateBook(currentBook.googleBookId, true);
+      setAddBookMessage({
+        type: 'success',
+        text: `"${activated.title}" reactivado. Continuando desde tu último progreso.`,
+      });
+      setShowModal(false);
+      if (typeof onAdd === 'function') {
+        // Refrescar la lista si hay callback
+        try { await onAdd(); } catch {}
+      }
+    } catch (err) {
+      console.error('Error al reactivar con progreso:', err);
+      setAddBookMessage({
+        type: 'error',
+        text: 'Error al reactivar el libro.',
+      });
+      setShowModal(false);
+    }
+  };
+
+  const handleStartFromZero = async () => {
+    try {
+      const activated = await BookService.activateBook(currentBook.googleBookId, false);
+      setAddBookMessage({
+        type: 'success',
+        text: `"${activated.title}" reactivado. Contador reiniciado.`,
+      });
+      setShowModal(false);
+      if (typeof onAdd === 'function') {
+        // Refrescar la lista si hay callback
+        try { await onAdd(); } catch {}
+      }
+    } catch (err) {
+      console.error('Error al reactivar sin progreso:', err);
+      setAddBookMessage({
+        type: 'error',
+        text: 'Error al reactivar el libro.',
+      });
+      setShowModal(false);
+    }
+  };
+
   // Maneja agregar libro
   const handleAddBook = async (book) => {
     setAddBookMessage(null);
+    setCurrentBook(book);
 
     if (!isAuthenticated()) {
       setAddBookMessage({
@@ -118,29 +166,44 @@ const SearchPage = ({ onAdd }) => {
     }
 
     try {
+      // ✅ 1. Verificar estado del libro ANTES de intentar agregar
+      const status = await BookService.getBookStatus(book.googleBookId);
+
+      if (status.existsActive) {
+        setAddBookMessage({
+          type: 'error',
+          text: 'Este libro ya está en tu colección.',
+        });
+        return;
+      }
+
+      if (status.existsInactive) {
+        // ✅ Mostrar modal para reactivar
+        setShowModal(true);
+        return;
+      }
+
+      // ✅ 2. Si no existe, agregar normalmente
       const addedBook = await onAdd(book.googleBookId);
       setAddBookMessage({
         type: 'success',
         text: `"${addedBook?.title || book.title}" agregado a tu colección.`,
       });
+
     } catch (error) {
-      let errorMessage = error.message || 'Error al agregar el libro.';
-      let action = null;
-
-      if (error.message?.includes('401') || error.message?.includes('403') || error.message?.includes('Unauthorized')) {
-        errorMessage = 'Tu sesión ha expirado o no tienes permisos.';
-        action = () => navigate('/login');
-      } else if (error.message?.includes('already exists')) {
-        errorMessage = 'Este libro ya está en tu colección.';
-      } else if (error.message?.includes('ID no puede ser nulo')) {
-        errorMessage = 'Error: ID de libro inválido.';
+      // ✅ Manejar solo errores reales (red, auth, etc.)
+      if (error.message.includes('401') || error.message.includes('403')) {
+        setAddBookMessage({
+          type: 'error',
+          text: 'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.',
+          action: () => navigate('/login'),
+        });
+      } else {
+        setAddBookMessage({
+          type: 'error',
+          text: error.message || 'Error al verificar o agregar el libro.',
+        });
       }
-
-      setAddBookMessage({
-        type: 'error',
-        text: errorMessage,
-        action,
-      });
     }
   };
 
@@ -228,6 +291,39 @@ const SearchPage = ({ onAdd }) => {
           />
         )}
       </div>
+
+      {/* Modal: Libro ya existe o fue eliminado - CORREGIDO */}
+      {showModal && currentBook && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-lg shadow-2xl max-w-sm w-full text-center">
+            <h3 className="text-xl font-bold text-white mb-4">¿Reactivar este libro?</h3>
+            <p className="text-gray-300 mb-6">
+              Este libro fue eliminado anteriormente. ¿Desea volver a agregarlo a su colección?
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={handleKeepProgress}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg"
+              >
+                Reactivar (mantener progreso)
+              </button>
+              <button
+                onClick={handleStartFromZero}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg"
+              >
+                Reactivar (empezar desde cero)
+              </button>
+              <button
+                onClick={() => setShowModal(false)}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -3,6 +3,7 @@ package com.cristianml.TomeVault.controllers;
 import com.cristianml.TomeVault.dtos.requests.BookRequestDTO;
 import com.cristianml.TomeVault.dtos.responses.BookResponseDTO;
 import com.cristianml.TomeVault.exceptions.ResourceNotFoundException;
+import com.cristianml.TomeVault.repositories.BookRepository;
 import com.cristianml.TomeVault.security.config.CustomUserDetails;
 import com.cristianml.TomeVault.services.IBookService;
 import com.cristianml.TomeVault.utilities.Utilities;
@@ -17,7 +18,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * REST controller for managing book-related operations.
@@ -28,6 +31,7 @@ import java.util.List;
 public class BookController {
 
     private final IBookService bookService;
+    private final BookRepository bookRepository;
 
     // Get book details by its Google Book ID (String) for the authenticated user.
     @GetMapping("/{googleBookId}")
@@ -152,10 +156,54 @@ public class BookController {
     public ResponseEntity<BookResponseDTO> activateBook(
             @AuthenticationPrincipal CustomUserDetails customUserDetails,
             @PathVariable("googleBookId") String googleBookId,
-            @RequestParam(value = "keepProgress", defaultValue = "true") boolean keepProgress) {
-        BookResponseDTO activatedBook = this.bookService.activateBook(
-                googleBookId, customUserDetails.getUserEntity(), keepProgress);
+            @RequestBody(required = false) Map<String, Object> request) {
 
-        return ResponseEntity.ok(activatedBook);
+        boolean keepProgress = true; // Por defecto mantener progreso
+        if (request != null && request.containsKey("keepProgress")) {
+            Object value = request.get("keepProgress");
+            if (value instanceof Boolean) {
+                keepProgress = (Boolean) value;
+            } else if (value instanceof String) {
+                keepProgress = Boolean.parseBoolean((String) value);
+            }
+        }
+
+        try {
+            BookResponseDTO bookResponseDTO = this.bookService.activateBook(
+                    googleBookId,
+                    customUserDetails.getUserEntity(),
+                    keepProgress
+            );
+            return ResponseEntity.ok(bookResponseDTO);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/status/{googleBookId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Map<String, Object>> getBookStatus(
+        @AuthenticationPrincipal CustomUserDetails customUserDetails,
+        @PathVariable("googleBookId") String googleBookId) {
+
+        // Busca si existe activo
+        boolean existsActive = bookRepository.existsByGoogleBookIdAndUserAndIsActiveTrue(googleBookId, customUserDetails.getUserEntity());
+
+        // Busca si existe inactivo (eliminado)
+        boolean existsInactive = bookRepository.existsByGoogleBookIdAndUserAndIsActiveFalse(googleBookId, customUserDetails.getUserEntity());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("existsActive", existsActive);
+        response.put("existsInactive", existsInactive);
+
+        if (existsActive) {
+            response.put("message", "El libro ya está en tu colección.");
+        } else if (existsInactive) {
+            response.put("message", "El libro fue eliminado anteriormente.");
+        } else {
+            response.put("message", "El libro no existe en tu colección.");
+        }
+
+        return ResponseEntity.ok(response);
     }
 }

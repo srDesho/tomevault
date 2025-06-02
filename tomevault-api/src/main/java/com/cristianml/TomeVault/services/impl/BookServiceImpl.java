@@ -73,14 +73,18 @@ public class BookServiceImpl implements IBookService {
         BookEntity deactivatedBook = this.bookRepository
                 .findByGoogleBookIdAndUserAndIsActiveFalse(googleBookId, userEntity)
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found or does not belong to the user."));
+
         deactivatedBook.setActive(true);
         deactivatedBook.setAddedAt(LocalDate.now());
 
+        // Si keepProgress es FALSE, reiniciar contador
         if (!keepProgress) {
             deactivatedBook.setReadCount(0);
         }
+        // Si keepProgress es TRUE, mantener el readCount actual (no hacer nada)
 
-        return bookMapper.toResponseDTO(bookRepository.save(deactivatedBook));
+        BookEntity savedBook = bookRepository.save(deactivatedBook);
+        return bookMapper.toResponseDTO(savedBook);
     }
 
     @Override
