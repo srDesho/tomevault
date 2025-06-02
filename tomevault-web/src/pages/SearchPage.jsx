@@ -6,7 +6,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import { SearchIcon } from '@heroicons/react/outline';
 import { useAuth } from '../context/AuthContext';
 
-const SearchPage = ({ onAdd }) => {
+const SearchPage = ({ onAdd, refreshBooks }) => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -107,10 +107,12 @@ const SearchPage = ({ onAdd }) => {
         text: `"${activated.title}" reactivado. Continuando desde tu último progreso.`,
       });
       setShowModal(false);
-      if (typeof onAdd === 'function') {
-        // Refrescar la lista si hay callback
-        try { await onAdd(); } catch {}
+
+      // ✅ Refrescar la lista completa
+      if (typeof refreshBooks === 'function') {
+        refreshBooks();
       }
+
     } catch (err) {
       console.error('Error al reactivar con progreso:', err);
       setAddBookMessage({
@@ -129,10 +131,12 @@ const SearchPage = ({ onAdd }) => {
         text: `"${activated.title}" reactivado. Contador reiniciado.`,
       });
       setShowModal(false);
-      if (typeof onAdd === 'function') {
-        // Refrescar la lista si hay callback
-        try { await onAdd(); } catch {}
+
+      // ✅ Refrescar la lista completa
+      if (typeof refreshBooks === 'function') {
+        refreshBooks();
       }
+
     } catch (err) {
       console.error('Error al reactivar sin progreso:', err);
       setAddBookMessage({
@@ -185,10 +189,15 @@ const SearchPage = ({ onAdd }) => {
 
       // ✅ 2. Si no existe, agregar normalmente
       const addedBook = await onAdd(book.googleBookId);
-      setAddBookMessage({
-        type: 'success',
-        text: `"${addedBook?.title || book.title}" agregado a tu colección.`,
-      });
+        setAddBookMessage({
+          type: 'success',
+          text: `"${addedBook?.title || book.title}" agregado a tu colección.`,
+        });
+
+        // ✅ REFRESCAR LOS LIBROS DESPUÉS DE AGREGAR
+        if (refreshBooks && typeof refreshBooks === 'function') {
+          await refreshBooks();
+        }
 
     } catch (error) {
       // ✅ Manejar solo errores reales (red, auth, etc.)

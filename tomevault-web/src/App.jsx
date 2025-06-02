@@ -103,7 +103,7 @@ const App = () => {
               />
 
               {/* ✅ Búsqueda pública */}
-              <Route path="/search" element={<SearchPage onAdd={handleAddBookFromSearch} />} />
+              <Route path="/search" element={<SearchPage onAdd={handleAddBookFromSearch} refreshBooks={fetchMyBooks} />} />
 
               <Route path="/books/:bookId" element={<BookDetailPage />} />
 
