@@ -105,7 +105,7 @@ public class BookController {
      * Saves a book to the user's collection by importing its details from Google Books using its Google Book ID.
      */
     @PostMapping("/from-google/{googleBookId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'USER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'SUPER_ADMIN')")
     public ResponseEntity<BookResponseDTO> saveBookFromGoogle(@AuthenticationPrincipal CustomUserDetails customUserDetails,
                                                               @PathVariable("googleBookId") String googleBookId) {
         BookResponseDTO savedBook = this.bookService.saveBookFromGoogle(googleBookId, customUserDetails.getUserEntity());
@@ -144,5 +144,18 @@ public class BookController {
             @PathVariable Long bookId) {
         BookResponseDTO updatedBook = this.bookService.decrementBookReadCount(bookId, customUserDetails.getUserEntity());
         return ResponseEntity.ok(updatedBook);
+    }
+
+    // Reactivate book
+    @PostMapping("activate/{googleBookId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<BookResponseDTO> activateBook(
+            @AuthenticationPrincipal CustomUserDetails customUserDetails,
+            @PathVariable("googleBookId") String googleBookId,
+            @RequestParam(value = "keepProgress", defaultValue = "true") boolean keepProgress) {
+        BookResponseDTO activatedBook = this.bookService.activateBook(
+                googleBookId, customUserDetails.getUserEntity(), keepProgress);
+
+        return ResponseEntity.ok(activatedBook);
     }
 }

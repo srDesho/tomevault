@@ -33,4 +33,7 @@ public interface BookRepository extends JpaRepository<BookEntity, Long> {
     @Query("UPDATE BookEntity b SET b.readCount = b.readCount - 1 WHERE b.id = :bookId AND b.user = :user AND b.readCount > 0")
     int decrementReadCount(@Param("bookId") Long bookId, @Param("user") UserEntity user);
 
+    Optional<BookEntity> findByGoogleBookIdAndUserAndIsActiveFalse(String googleBookId, UserEntity user);
+
+    boolean existsByGoogleBookIdAndUserAndIsActiveTrue(String googleBookId, UserEntity user);
 }

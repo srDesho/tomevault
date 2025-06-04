@@ -6,6 +6,7 @@ import com.cristianml.TomeVault.dtos.responses.BookResponseDTO;
 import com.cristianml.TomeVault.entities.BookEntity;
 import com.cristianml.TomeVault.entities.UserEntity;
 import com.cristianml.TomeVault.exceptions.BookAlreadyExistsException;
+import com.cristianml.TomeVault.exceptions.BookPreviouslyDeletedException;
 import com.cristianml.TomeVault.exceptions.ResourceNotFoundException;
 import com.cristianml.TomeVault.mappers.BookMapper;
 import com.cristianml.TomeVault.repositories.BookRepository;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Manages user book operations, including Google Books API integration.
@@ -63,6 +65,22 @@ public class BookServiceImpl implements IBookService {
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found or does not belong to the user."));
         delete.setActive(false);
         this.bookRepository.save(delete);
+    }
+
+    @Override
+    @Transactional
+    public BookResponseDTO activateBook(String googleBookId, UserEntity userEntity, boolean keepProgress) {
+        BookEntity deactivatedBook = this.bookRepository
+                .findByGoogleBookIdAndUserAndIsActiveFalse(googleBookId, userEntity)
+                .orElseThrow(() -> new ResourceNotFoundException("Book not found or does not belong to the user."));
+        deactivatedBook.setActive(true);
+        deactivatedBook.setAddedAt(LocalDate.now());
+
+        if (!keepProgress) {
+            deactivatedBook.setReadCount(0);
+        }
+
+        return bookMapper.toResponseDTO(bookRepository.save(deactivatedBook));
     }
 
     @Override
@@ -144,11 +162,16 @@ public class BookServiceImpl implements IBookService {
     @Override
     @Transactional
     public BookResponseDTO saveBookFromGoogle(String googleBookId, UserEntity user) {
-        // Checks if book already exists for the user.
-        if (bookRepository.existsByGoogleBookIdAndUser(googleBookId, user)) {
-            throw new BookAlreadyExistsException("Book with ID " + googleBookId + " already exists in your collection");
+        // Verify if exists a book as deleted
+        Optional<BookEntity> deletedBook = bookRepository.findByGoogleBookIdAndUserAndIsActiveFalse(googleBookId, user);
+        if (deletedBook.isPresent()) {
+            throw new BookPreviouslyDeletedException("Book was previously deleted. Please use activate endpoint.");
         }
 
+        // Verify if exists active book
+        if (bookRepository.existsByGoogleBookIdAndUserAndIsActiveTrue(googleBookId, user)) {
+            throw new BookAlreadyExistsException("Book already exists in your collection");
+        }
         GoogleBookItem googleBook = this.googleBooksIntegrationService.getBookById(googleBookId); // Fetches from Google.
         BookEntity book = this.bookMapper.toEntity(googleBook); // Maps to entity.
         book.setUser(user); // Sets book owner.

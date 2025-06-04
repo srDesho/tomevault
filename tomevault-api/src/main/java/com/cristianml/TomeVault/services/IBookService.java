@@ -28,4 +28,6 @@ public interface IBookService {
 
     BookResponseDTO incrementBookReadCount(Long bookId, UserEntity user);
     BookResponseDTO decrementBookReadCount(Long bookId, UserEntity user);
+
+    BookResponseDTO activateBook(String googleBookId, UserEntity user, boolean keepProgress);
 }

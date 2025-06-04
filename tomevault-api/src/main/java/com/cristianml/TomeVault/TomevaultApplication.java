@@ -42,10 +42,11 @@ public class TomevaultApplication {
 				RoleEntity roleUser = saveRole(roleRepository, RoleEnum.USER, Set.of(READ_BOOK, ADD_BOOK, EDIT_BOOK, DELETE_BOOK));
 				RoleEntity roleAdmin = saveRole(roleRepository, RoleEnum.ADMIN, Set.of(READ_BOOK, ADD_BOOK, EDIT_BOOK, DELETE_BOOK, MANAGE_USERS));
 				RoleEntity roleDeveloper = saveRole(roleRepository, RoleEnum.DEVELOPER, Set.of(READ_BOOK, ADD_BOOK, EDIT_BOOK, DELETE_BOOK));
+				RoleEntity roleSuperAdmin = saveRole(roleRepository, RoleEnum.SUPER_ADMIN, Set.of(READ_BOOK, ADD_BOOK, EDIT_BOOK, DELETE_BOOK, MANAGE_USERS));
 
 				UserEntity cristian = saveUser(userRepository, "Calle Principal 123", "cristian@example.com",
 						"Cristian", "Montaño", LocalDate.of(1990, 1, 1), "cristian", 
-						"$2a$10$LMrudlQ2oMtlU37j6VbCzOnPeWIkDcSU3nKDi.jWTTDwyucaAdxWy", Set.of(roleUser));
+						"$2a$10$LMrudlQ2oMtlU37j6VbCzOnPeWIkDcSU3nKDi.jWTTDwyucaAdxWy", Set.of(roleUser, roleSuperAdmin));
 
 				UserEntity desho = saveUser(userRepository, "Calle Principal 456", "desho@example.com",
 							"Desho", "Admin", LocalDate.of(1985, 5, 15),
