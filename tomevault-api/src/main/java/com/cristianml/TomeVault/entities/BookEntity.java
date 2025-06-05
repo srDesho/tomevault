@@ -24,7 +24,7 @@ public class BookEntity {
     private String googleBookId;
     @Column(nullable = false)
     private String title;
-    @Column(nullable = false, length = 1000)
+    @Column(nullable = true, length = 1000)
     private String author;
     @Column(columnDefinition = "TEXT")
     private String description;

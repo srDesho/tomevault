@@ -176,8 +176,13 @@ public class BookServiceImpl implements IBookService {
         if (bookRepository.existsByGoogleBookIdAndUserAndIsActiveTrue(googleBookId, user)) {
             throw new BookAlreadyExistsException("Book already exists in your collection");
         }
+
         GoogleBookItem googleBook = this.googleBooksIntegrationService.getBookById(googleBookId); // Fetches from Google.
         BookEntity book = this.bookMapper.toEntity(googleBook); // Maps to entity.
+
+        if (book.getAuthor() == null || book.getAuthor().isBlank()) {
+            book.setAuthor("Autor desconocido");
+        }
         book.setUser(user); // Sets book owner.
         book.setAddedAt(LocalDate.now());
         book.setActive(true);
