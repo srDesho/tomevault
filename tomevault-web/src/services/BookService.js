@@ -35,18 +35,16 @@ const fetchWithRetry = async (url, options = {}, retries = 3, delay = 1000) => {
   }
 };
 
-export const getMyBooks = async () => {
-  console.log("Llamando a API: obtener mis libros desde", BACKEND_BASE_URL);
+export const getMyBooks = async (page = 0, size = 12) => {
+  console.log("Llamando a API: obtener libros paginados");
   try {
-    const books = await fetchWithRetry(`${BACKEND_BASE_URL}/books`);
-    // ✅ Ordenar por fecha de agregado (más reciente primero)
-    if (Array.isArray(books.content)) {
-      books.content.sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
-    }
-    return books;
+    const response = await fetchWithRetry(
+      `${BACKEND_BASE_URL}/books?page=${page}&size=${size}&sort=addedAt,desc`
+    );
+    return response;
   } catch (error) {
-    console.error("Error al obtener mis libros:", error);
-    throw new Error("No se pudieron cargar tus libros. Asegúrate de que tu backend esté funcionando y accesible.");
+    console.error("Error al obtener libros paginados:", error);
+    throw new Error("No se pudieron cargar los libros.");
   }
 };
 

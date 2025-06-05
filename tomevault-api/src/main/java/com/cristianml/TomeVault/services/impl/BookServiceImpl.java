@@ -38,7 +38,7 @@ public class BookServiceImpl implements IBookService {
      */
     @Override
     public Page<BookResponseDTO> getBooksByUser(UserEntity userEntity, Pageable pageable) {
-        Page<BookEntity> books = this.bookRepository.findAllByUser(userEntity, pageable);
+        Page<BookEntity> books = this.bookRepository.findAllByUserAndIsActiveTrue(userEntity, pageable);
         return books.map(bookMapper::toResponseDTO);
     }
 

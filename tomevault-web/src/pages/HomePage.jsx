@@ -1,12 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import BookList from '../components/books/BookList';
 import * as BookService from '../services/BookService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import Pagination from '../components/common/Pagination';
 
-const HomePage = ({ myBooks = [], isLoading, refreshBooks }) => {
+const HomePage = () => {
+  const [myBooks, setMyBooks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [notification, setNotification] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [bookToDelete, setBookToDelete] = useState(null);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+
+  // ✅ Cargar libros con paginación
+  const loadBooks = async (page = 0, size = 20) => { // Aumenta el tamaño a 20 como solicitaste.
+    setIsLoading(true);
+    try {
+      const response = await BookService.getMyBooks(page, size);
+      setMyBooks(response.content || []);
+      setTotalPages(response.totalPages);
+      setTotalElements(response.totalElements);
+      setCurrentPage(response.number);
+    } catch (error) {
+      console.error("Error loading books:", error);
+      setMyBooks([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ✅ Cargar libros al montar el componente
+  useEffect(() => {
+    loadBooks();
+  }, []);
 
   const handleDelete = async (bookId) => {
     try {
@@ -15,7 +43,8 @@ const HomePage = ({ myBooks = [], isLoading, refreshBooks }) => {
         type: 'success',
         message: 'Libro eliminado correctamente'
       });
-      refreshBooks();
+      // ✅ Recargar la página actual después de eliminar
+      await loadBooks(currentPage);
     } catch (error) {
       setNotification({
         type: 'error',
@@ -27,16 +56,16 @@ const HomePage = ({ myBooks = [], isLoading, refreshBooks }) => {
     }
   };
 
-  // Aseguramos que myBooks sea un array
-  const safeBooks = Array.isArray(myBooks) ? myBooks : [];
-
-  // Filtrar solo libros activos
-  const activeBooks = safeBooks.filter(book => book.active !== false);
+  // ✅ Cambiar de página
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+    loadBooks(newPage);
+  };
 
   return (
     <div className="w-full">
       <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-8 text-center">
-        Mis Libros
+        Mis Libros ({totalElements} libros)
       </h2>
 
       {notification && (
@@ -49,17 +78,26 @@ const HomePage = ({ myBooks = [], isLoading, refreshBooks }) => {
 
       {isLoading ? (
         <LoadingSpinner />
-      ) : activeBooks.length > 0 ? (
-        <BookList
-          books={activeBooks}
-          isSearchList={false}
-          emptyMessage={null}
-          onDelete={(id) => {
-            const book = activeBooks.find(b => b.id === id);
-            setBookToDelete(book);
-            setShowDeleteModal(true);
-          }}
-        />
+      ) : myBooks.length > 0 ? (
+        <>
+          <BookList
+            books={myBooks}
+            isSearchList={false}
+            emptyMessage={null}
+            onDelete={(id) => {
+              const book = myBooks.find(b => b.id === id);
+              setBookToDelete(book);
+              setShowDeleteModal(true);
+            }}
+          />
+          {/* ✅ Agregar paginación */}
+         
+          { <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          /> }
+        </>
       ) : (
         <div className="py-12 text-center">
           <div className="bg-gray-800 p-6 rounded-lg inline-block">

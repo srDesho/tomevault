@@ -15,7 +15,7 @@ import java.util.Optional;
 
 @Repository
 public interface BookRepository extends JpaRepository<BookEntity, Long> {
-    Page<BookEntity> findAllByUser(UserEntity user, Pageable pageable);
+    Page<BookEntity> findAllByUserAndIsActiveTrue(UserEntity user, Pageable pageable);
 
     Optional<BookEntity> findByIdAndUser(Long id, UserEntity user);
 
@@ -38,4 +38,5 @@ public interface BookRepository extends JpaRepository<BookEntity, Long> {
     boolean existsByGoogleBookIdAndUserAndIsActiveTrue(String googleBookId, UserEntity user);
 
     boolean existsByGoogleBookIdAndUserAndIsActiveFalse(String googleBookId, UserEntity userEntity);
+
 }
