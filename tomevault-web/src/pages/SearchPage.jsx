@@ -1,26 +1,45 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import BookList from '../components/books/BookList';
 import * as BookService from '../services/BookService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { SearchIcon } from '@heroicons/react/outline';
 import { useAuth } from '../context/AuthContext';
+import { useSearch } from '../context/SearchContext';
 
 const SearchPage = ({ onAdd, refreshBooks }) => {
   const { isAuthenticated } = useAuth();
+  const {
+    searchTerm,
+    setSearchTerm,
+    searchResults,
+    setSearchResults,
+    searchScrollPosition,
+    setSearchScrollPosition
+  } = useSearch();
   const navigate = useNavigate();
   const location = useLocation();
+  const searchContainerRef = useRef(null);
 
-  const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [searchErrorMessage, setSearchErrorMessage] = useState(null);
   const [addBookMessage, setAddBookMessage] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [currentBook, setCurrentBook] = useState(null);
 
-  // Limpia mensajes después de 3 segundos
+  const saveScrollPosition = () => {
+    if (searchContainerRef.current) {
+      setSearchScrollPosition(searchContainerRef.current.scrollTop);
+    }
+  };
+
+  useEffect(() => {
+    if (searchContainerRef.current && searchScrollPosition > 0) {
+      searchContainerRef.current.scrollTop = searchScrollPosition;
+    }
+  }, [searchResults, searchScrollPosition]);
+
   useEffect(() => {
     let timer;
     if (addBookMessage || searchErrorMessage) {
@@ -32,7 +51,12 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
     return () => clearTimeout(timer);
   }, [addBookMessage, searchErrorMessage]);
 
-  // Ejecuta la búsqueda
+  useEffect(() => {
+    if (searchResults.length > 0) {
+      setHasSearched(true);
+    }
+  }, [searchResults]);
+
   const executeSearch = useCallback(async (queryToSearch) => {
     if (!queryToSearch.trim()) {
       setSearchResults([]);
@@ -66,26 +90,20 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
     } finally {
       setIsSearching(false);
     }
-  }, []);
+  }, [setSearchResults]);
 
-  // Lee el término de búsqueda de la URL
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const queryFromUrl = queryParams.get('query');
 
-    if (queryFromUrl) {
+    if (queryFromUrl && queryFromUrl !== searchTerm) {
       setSearchTerm(queryFromUrl);
       executeSearch(queryFromUrl);
-    } else {
-      setSearchResults([]);
-      setSearchTerm('');
-      setHasSearched(false);
-      setSearchErrorMessage(null);
-      setAddBookMessage(null);
+    } else if (searchTerm && !queryFromUrl) {
+      navigate(`?query=${encodeURIComponent(searchTerm)}`, { replace: true });
     }
-  }, [location.search, executeSearch]);
+  }, [location.search, searchTerm, executeSearch, navigate, setSearchTerm]);
 
-  // Maneja el envío del formulario
   const handleSearch = (e) => {
     e.preventDefault();
     if (!searchTerm.trim()) {
@@ -98,56 +116,6 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
     navigate(`?query=${encodeURIComponent(searchTerm)}`);
   };
 
-  // FUNCIONES PARA EL MODAL - CORREGIDAS
-  const handleKeepProgress = async () => {
-    try {
-      const activated = await BookService.activateBook(currentBook.googleBookId, true);
-      setAddBookMessage({
-        type: 'success',
-        text: `"${activated.title}" reactivado. Continuando desde tu último progreso.`,
-      });
-      setShowModal(false);
-
-      // ✅ Refrescar la lista completa
-      if (typeof refreshBooks === 'function') {
-        refreshBooks();
-      }
-
-    } catch (err) {
-      console.error('Error al reactivar con progreso:', err);
-      setAddBookMessage({
-        type: 'error',
-        text: 'Error al reactivar el libro.',
-      });
-      setShowModal(false);
-    }
-  };
-
-  const handleStartFromZero = async () => {
-    try {
-      const activated = await BookService.activateBook(currentBook.googleBookId, false);
-      setAddBookMessage({
-        type: 'success',
-        text: `"${activated.title}" reactivado. Contador reiniciado.`,
-      });
-      setShowModal(false);
-
-      // ✅ Refrescar la lista completa
-      if (typeof refreshBooks === 'function') {
-        refreshBooks();
-      }
-
-    } catch (err) {
-      console.error('Error al reactivar sin progreso:', err);
-      setAddBookMessage({
-        type: 'error',
-        text: 'Error al reactivar el libro.',
-      });
-      setShowModal(false);
-    }
-  };
-
-  // Maneja agregar libro
   const handleAddBook = async (book) => {
     setAddBookMessage(null);
     setCurrentBook(book);
@@ -170,7 +138,6 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
     }
 
     try {
-      // ✅ 1. Verificar estado del libro ANTES de intentar agregar
       const status = await BookService.getBookStatus(book.googleBookId);
 
       if (status.existsActive) {
@@ -182,25 +149,20 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
       }
 
       if (status.existsInactive) {
-        // ✅ Mostrar modal para reactivar
         setShowModal(true);
         return;
       }
 
-      // ✅ 2. Si no existe, agregar normalmente
       const addedBook = await onAdd(book.googleBookId);
-        setAddBookMessage({
-          type: 'success',
-          text: `"${addedBook?.title || book.title}" agregado a tu colección.`,
-        });
+      setAddBookMessage({
+        type: 'success',
+        text: `"${addedBook?.title || book.title}" agregado a tu colección.`,
+      });
 
-        // ✅ REFRESCAR LOS LIBROS DESPUÉS DE AGREGAR
-        if (refreshBooks && typeof refreshBooks === 'function') {
-          await refreshBooks();
-        }
-
+      if (refreshBooks && typeof refreshBooks === 'function') {
+        await refreshBooks();
+      }
     } catch (error) {
-      // ✅ Manejar solo errores reales (red, auth, etc.)
       if (error.message.includes('401') || error.message.includes('403')) {
         setAddBookMessage({
           type: 'error',
@@ -216,14 +178,56 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
     }
   };
 
+  const handleKeepProgress = async () => {
+    try {
+      const activated = await BookService.activateBook(currentBook.googleBookId, true);
+      setAddBookMessage({
+        type: 'success',
+        text: `"${activated.title}" reactivado. Continuando desde tu último progreso.`,
+      });
+      setShowModal(false);
+
+      if (typeof refreshBooks === 'function') {
+        refreshBooks();
+      }
+    } catch (err) {
+      console.error('Error al reactivar con progreso:', err);
+      setAddBookMessage({
+        type: 'error',
+        text: 'Error al reactivar el libro.',
+      });
+      setShowModal(false);
+    }
+  };
+
+  const handleStartFromZero = async () => {
+    try {
+      const activated = await BookService.activateBook(currentBook.googleBookId, false);
+      setAddBookMessage({
+        type: 'success',
+        text: `"${activated.title}" reactivado. Contador reiniciado.`,
+      });
+      setShowModal(false);
+
+      if (typeof refreshBooks === 'function') {
+        refreshBooks();
+      }
+    } catch (err) {
+      console.error('Error al reactivar sin progreso:', err);
+      setAddBookMessage({
+        type: 'error',
+        text: 'Error al reactivar el libro.',
+      });
+      setShowModal(false);
+    }
+  };
+
   return (
-    <div className="w-full">
+    <div className="w-full" ref={searchContainerRef} onScroll={saveScrollPosition}>
       <div className="mb-8 w-full">
         <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-6 text-center">
           Buscar Libros
         </h2>
-
-        {/* Formulario de búsqueda */}
         <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4 w-full max-w-2xl mx-auto">
           <input
             type="text"
@@ -249,8 +253,6 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
           </button>
         </form>
       </div>
-
-      {/* Mensaje de éxito/error al agregar */}
       {addBookMessage && (
         <div key="add-message" className={`p-4 rounded-lg text-center mb-4 ${addBookMessage.type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white`}>
           {addBookMessage.text}
@@ -261,15 +263,11 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
           )}
         </div>
       )}
-
-      {/* Mensaje de error de búsqueda */}
       {searchErrorMessage && (
         <div className="p-4 rounded-lg bg-red-600 text-white text-center mb-4">
           {searchErrorMessage}
         </div>
       )}
-
-      {/* Resultados */}
       <div className="w-full min-w-0">
         {isSearching ? (
           <LoadingSpinner />
@@ -300,8 +298,6 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
           />
         )}
       </div>
-
-      {/* Modal: Libro ya existe o fue eliminado - CORREGIDO */}
       {showModal && currentBook && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-6 rounded-lg shadow-2xl max-w-sm w-full text-center">
@@ -309,7 +305,6 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
             <p className="text-gray-300 mb-6">
               Este libro fue eliminado anteriormente. ¿Desea volver a agregarlo a su colección?
             </p>
-
             <div className="flex flex-col gap-3">
               <button
                 onClick={handleKeepProgress}

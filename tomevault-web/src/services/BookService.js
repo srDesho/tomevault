@@ -2,182 +2,220 @@ import { getAuthHeader } from './AuthService';
 
 const BACKEND_BASE_URL = 'http://localhost:8080/api/v1';
 
+// A generic function to handle API calls with authentication and retry logic.
 const fetchWithRetry = async (url, options = {}, retries = 3, delay = 1000) => {
-  const authHeader = getAuthHeader();
-  const finalHeaders = new Headers(options.headers);
+    const authHeader = getAuthHeader();
+    const finalHeaders = new Headers(options.headers);
 
-  if (authHeader) {
-    finalHeaders.set('Authorization', authHeader);
-  }
-  finalHeaders.set('Content-Type', 'application/json');
-
-  const newOptions = {
-    ...options,
-    headers: finalHeaders,
-  };
-
-  for (let i = 0; i < retries; i++) {
-    try {
-      const response = await fetch(url, newOptions);
-      if (!response.ok) {
-        const errorBody = await response.text();
-        throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}. Details: ${errorBody}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error(`Attempt ${i + 1} failed for ${url}:`, error);
-      if (i < retries - 1) {
-        await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
-      } else {
-        throw error;
-      }
+    if (authHeader) {
+        finalHeaders.set('Authorization', authHeader);
     }
-  }
-};
+    finalHeaders.set('Content-Type', 'application/json');
 
-export const getMyBooks = async (page = 0, size = 12) => {
-  console.log("Llamando a API: obtener libros paginados");
-  try {
-    const response = await fetchWithRetry(
-      `${BACKEND_BASE_URL}/books?page=${page}&size=${size}&sort=addedAt,desc`
-    );
-    return response;
-  } catch (error) {
-    console.error("Error al obtener libros paginados:", error);
-    throw new Error("No se pudieron cargar los libros.");
-  }
-};
-
-export const getBookById = async (googleBookId) => {
-  console.log(`Llamando a API: obtener libro con ID: ${googleBookId} desde`, BACKEND_BASE_URL);
-  try {
-    const userBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/${googleBookId}`);
-    return { ...userBook, fromUserCollection: true };
-  } catch (error) {
-    console.warn(`Libro con Google ID ${googleBookId} no encontrado en la colección del usuario, intentando desde la API de Google...`, error);
-    try {
-      const googleApiBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/google-api/${googleBookId}`);
-      return { ...googleApiBook, fromUserCollection: false };
-    } catch (googleApiError) {
-      console.error(`Error al obtener libro con Google ID ${googleBookId} de la API de Google:`, googleApiError);
-      throw new Error("No se pudo cargar la información del libro desde tu colección ni desde Google Books.");
-    }
-  }
-};
-
-export const searchGoogleBooks = async (query) => {
-  console.log("Llamando a API: buscar libros en tu Backend Spring con query:", query);
-  try {
-    const url = `${BACKEND_BASE_URL}/books/search-google?query=${encodeURIComponent(query)}`;
-    const data = await fetchWithRetry(url, { headers: { 'Content-Type': 'application/json' }});
-    return data;
-  } catch (error) {
-    console.error("Error al buscar libros en tu Backend Spring:", error);
-    throw new Error("No se pudieron buscar libros. Verifica la conexión a tu backend.");
-  }
-};
-
-// ✅ Nuevo: activar libro eliminado
-export const activateBook = async (googleBookId, keepProgress = true) => {
-  console.log("Reactivando libro con ID:", googleBookId, "Mantener progreso:", keepProgress);
-  try {
-    const response = await fetchWithRetry(`${BACKEND_BASE_URL}/books/activate/${googleBookId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ keepProgress }),
-    });
-    return response;
-  } catch (error) {
-    console.error("Error al reactivar libro:", error);
-    throw error;
-  }
-};
-
-// ✅ Guardar libro desde Google
-export const saveBookFromGoogle = async (googleBookId) => {
-  console.log("Llamando a API: guardar libro desde Google Books en tu Backend Spring con ID:", googleBookId);
-  try {
-    const createdBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/from-google/${googleBookId}`, {
-      method: 'POST',
-    });
-    return createdBook;
-  } catch (error) {
-    console.error("Error al guardar libro desde Google Books:", error);
-    throw error;
-  }
-};
-
-export const updateReadCount = async (bookId, newReadCount) => {
-  console.log(`Llamando a API: actualizar contador de lecturas para el libro ${bookId} a ${newReadCount} en`, BACKEND_BASE_URL);
-  try {
-    const currentBook = await getBookById(bookId);
-    if (!currentBook) {
-      throw new Error("Libro no encontrado para actualizar el contador.");
-    }
-    const bookToUpdate = {
-      ...currentBook,
-      readCount: newReadCount
+    const newOptions = {
+        ...options,
+        headers: finalHeaders,
     };
 
-    const updatedBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/${bookId}`, {
-      method: 'PUT',
-      body: JSON.stringify(bookToUpdate),
-    });
-    return updatedBook;
-  } catch (error) {
-    console.error(`Error al actualizar el contador de lecturas para el libro ${bookId}:`, error);
-    throw new Error("No se pudo actualizar el contador de lecturas. Verifica la conexión al backend o los permisos.");
-  }
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await fetch(url, newOptions);
+            if (!response.ok) {
+                const errorBody = await response.text();
+                throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}. Details: ${errorBody}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error(`Attempt ${i + 1} failed for ${url}:`, error);
+            if (i < retries - 1) {
+                await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
+            } else {
+                throw error;
+            }
+        }
+    }
 };
 
+// Fetches a paginated list of the user's books.
+export const getMyBooks = async (page = 0, size = 12) => {
+    console.log("Calling API: get paginated books");
+    try {
+        const response = await fetchWithRetry(
+            `${BACKEND_BASE_URL}/books?page=${page}&size=${size}&sort=addedAt,desc`
+        );
+        return response;
+    } catch (error) {
+        console.error("Error getting paginated books:", error);
+        throw new Error("Could not load books.");
+    }
+};
+
+// Fetches all of the user's books by iterating through all pages.
+export const getAllMyBooks = async () => {
+    console.log("Calling API: get all books");
+    try {
+        let allBooks = [];
+        let page = 0;
+        let hasMore = true;
+        
+        while (hasMore) {
+            const response = await fetchWithRetry(
+                `${BACKEND_BASE_URL}/books?page=${page}&size=100&sort=addedAt,desc`
+            );
+            
+            if (response.content && response.content.length > 0) {
+                allBooks = [...allBooks, ...response.content];
+                page++;
+                hasMore = page < response.totalPages;
+            } else {
+                hasMore = false;
+            }
+        }
+        
+        return allBooks;
+    } catch (error) {
+        console.error("Error getting all books:", error);
+        throw new Error("Could not load all books.");
+    }
+};
+
+// Fetches a single book, first from the user's collection and then from the Google Books API if not found.
+export const getBookById = async (googleBookId) => {
+    console.log(`Calling API: get book with ID: ${googleBookId} from`, BACKEND_BASE_URL);
+    try {
+        const userBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/${googleBookId}`);
+        return { ...userBook, fromUserCollection: true };
+    } catch (error) {
+        console.warn(`Book with Google ID ${googleBookId} not found in user's collection, trying Google API...`, error);
+        try {
+            const googleApiBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/google-api/${googleBookId}`);
+            return { ...googleApiBook, fromUserCollection: false };
+        } catch (googleApiError) {
+            console.error(`Error getting book with Google ID ${googleBookId} from Google API:`, googleApiError);
+            throw new Error("Could not load book information from your collection or from Google Books.");
+        }
+    }
+};
+
+// Searches for books using the Google Books API via the backend.
+export const searchGoogleBooks = async (query) => {
+    console.log("Calling API: search books on your Spring Backend with query:", query);
+    try {
+        const url = `${BACKEND_BASE_URL}/books/search-google?query=${encodeURIComponent(query)}`;
+        const data = await fetchWithRetry(url, { headers: { 'Content-Type': 'application/json' }});
+        return data;
+    } catch (error) {
+        console.error("Error searching books on your Spring Backend:", error);
+        throw new Error("Could not search for books. Check the connection to your backend.");
+    }
+};
+
+// Reactivates a soft-deleted book.
+export const activateBook = async (googleBookId, keepProgress = true) => {
+    console.log("Reactivating book with ID:", googleBookId, "Keep progress:", keepProgress);
+    try {
+        const response = await fetchWithRetry(`${BACKEND_BASE_URL}/books/activate/${googleBookId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ keepProgress }),
+        });
+        return response;
+    } catch (error) {
+        console.error("Error reactivating book:", error);
+        throw error;
+    }
+};
+
+// Saves a book from the Google Books API to the user's collection.
+export const saveBookFromGoogle = async (googleBookId) => {
+    console.log("Calling API: save book from Google Books to your Spring Backend with ID:", googleBookId);
+    try {
+        const createdBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/from-google/${googleBookId}`, {
+            method: 'POST',
+        });
+        return createdBook;
+    } catch (error) {
+        console.error("Error saving book from Google Books:", error);
+        throw error;
+    }
+};
+
+// Updates a book's read count.
+export const updateReadCount = async (bookId, newReadCount) => {
+    console.log(`Calling API: update read count for book ${bookId} to ${newReadCount} on`, BACKEND_BASE_URL);
+    try {
+        const currentBook = await getBookById(bookId);
+        if (!currentBook) {
+            throw new Error("Book not found to update read count.");
+        }
+        const bookToUpdate = {
+            ...currentBook,
+            readCount: newReadCount
+        };
+
+        const updatedBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/${bookId}`, {
+            method: 'PUT',
+            body: JSON.stringify(bookToUpdate),
+        });
+        return updatedBook;
+    } catch (error) {
+        console.error(`Error updating read count for book ${bookId}:`, error);
+        throw new Error("Could not update read count. Check backend connection or permissions.");
+    }
+};
+
+// Increments a book's read count.
 export const incrementReadCount = async (bookId) => {
-  console.log("Llamando a API: incrementar contador de lecturas para libro ID:", bookId);
-  try {
-    const updatedBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/increment-read/${bookId}`, {
-      method: 'POST'
-    });
-    return updatedBook;
-  } catch (error) {
-    console.error("Error al incrementar contador de lecturas:", error);
-    throw new Error(error.message || "No se pudo incrementar el contador de lecturas.");
-  }
+    console.log("Calling API: increment read count for book ID:", bookId);
+    try {
+        const updatedBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/increment-read/${bookId}`, {
+            method: 'POST'
+        });
+        return updatedBook;
+    } catch (error) {
+        console.error("Error incrementing read count:", error);
+        throw new Error(error.message || "Could not increment read count.");
+    }
 };
 
+// Decrements a book's read count.
 export const decrementReadCount = async (bookId) => {
-  console.log("Llamando a API: decrementar contador de lecturas para libro ID:", bookId);
-  try {
-    const updatedBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/decrement-read/${bookId}`, {
-      method: 'POST'
-    });
-    return updatedBook;
-  } catch (error) {
-    console.error("Error al decrementar contador de lecturas:", error);
-    throw new Error(error.message || "No se pudo decrementar el contador de lecturas.");
-  }
+    console.log("Calling API: decrement read count for book ID:", bookId);
+    try {
+        const updatedBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/decrement-read/${bookId}`, {
+            method: 'POST'
+        });
+        return updatedBook;
+    } catch (error) {
+        console.error("Error decrementing read count:", error);
+        throw new Error(error.message || "Could not decrement read count.");
+    }
 };
 
+// Deletes a book from the user's collection.
 export const deleteBook = async (bookId) => {
-  console.log("Llamando a API: eliminar libro ID:", bookId);
-  try {
-    await fetchWithRetry(`${BACKEND_BASE_URL}/books/${bookId}`, {
-      method: 'DELETE'
-    });
-    return true;
-  } catch (error) {
-    console.error("Error al eliminar libro:", error);
-    throw new Error(error.message || "No se pudo eliminar el libro.");
-  }
+    console.log("Calling API: delete book ID:", bookId);
+    try {
+        await fetchWithRetry(`${BACKEND_BASE_URL}/books/${bookId}`, {
+            method: 'DELETE'
+        });
+        return true;
+    } catch (error) {
+        console.error("Error deleting book:", error);
+        throw new Error(error.message || "Could not delete the book.");
+    }
 };
 
+// Gets the status (e.g., deleted, active, not in collection) of a book.
 export const getBookStatus = async (googleBookId) => {
-  console.log(`Llamando a API: verificar estado del libro ${googleBookId}`);
-  try {
-    const response = await fetchWithRetry(`${BACKEND_BASE_URL}/books/status/${googleBookId}`);
-    return response;
-  } catch (error) {
-    console.error("Error al verificar estado del libro:", error);
-    throw error;
-  }
+    console.log(`Calling API: check status for book ${googleBookId}`);
+    try {
+        const response = await fetchWithRetry(`${BACKEND_BASE_URL}/books/status/${googleBookId}`);
+        return response;
+    } catch (error) {
+        console.error("Error checking book status:", error);
+        throw error;
+    }
 };
