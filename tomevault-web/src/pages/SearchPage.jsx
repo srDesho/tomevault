@@ -15,31 +15,58 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
     searchResults,
     setSearchResults,
     searchScrollPosition,
-    setSearchScrollPosition
+    setSearchScrollPosition,
+    hasSearched,
+    setHasSearched,
+    clearSearch
   } = useSearch();
+  
   const navigate = useNavigate();
   const location = useLocation();
-  const searchContainerRef = useRef(null);
+  const isInitialLoad = useRef(true);
+  const previousSearchTerm = useRef(searchTerm);
 
   const [isSearching, setIsSearching] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
   const [searchErrorMessage, setSearchErrorMessage] = useState(null);
   const [addBookMessage, setAddBookMessage] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [currentBook, setCurrentBook] = useState(null);
+  const [scrollRestored, setScrollRestored] = useState(false);
 
-  const saveScrollPosition = () => {
-    if (searchContainerRef.current) {
-      setSearchScrollPosition(searchContainerRef.current.scrollTop);
-    }
-  };
-
+  // Guardar scroll del window (igual que en HomePage)
   useEffect(() => {
-    if (searchContainerRef.current && searchScrollPosition > 0) {
-      searchContainerRef.current.scrollTop = searchScrollPosition;
-    }
-  }, [searchResults, searchScrollPosition]);
+    let scrollTimer;
+    const handleScroll = () => {
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        setSearchScrollPosition(window.scrollY);
+      }, 150);
+    };
 
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      clearTimeout(scrollTimer);
+    };
+  }, [setSearchScrollPosition]);
+
+  // Restaurar scroll después de carga (igual que en HomePage)
+  useEffect(() => {
+    if (!isSearching && searchResults.length > 0 && searchScrollPosition > 0 && !scrollRestored) {
+      const restoreScroll = () => {
+        const targetPosition = Math.min(searchScrollPosition, document.body.scrollHeight - window.innerHeight);
+        if (targetPosition >= 0) {
+          window.scrollTo({ top: targetPosition, behavior: 'instant' });
+          setScrollRestored(true);
+        }
+      };
+
+      const timer = setTimeout(restoreScroll, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isSearching, searchResults.length, searchScrollPosition, scrollRestored]);
+
+  // Clear messages after timeout
   useEffect(() => {
     let timer;
     if (addBookMessage || searchErrorMessage) {
@@ -51,12 +78,7 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
     return () => clearTimeout(timer);
   }, [addBookMessage, searchErrorMessage]);
 
-  useEffect(() => {
-    if (searchResults.length > 0) {
-      setHasSearched(true);
-    }
-  }, [searchResults]);
-
+  // Execute search function
   const executeSearch = useCallback(async (queryToSearch) => {
     if (!queryToSearch.trim()) {
       setSearchResults([]);
@@ -74,8 +96,11 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
       const results = await BookService.searchGoogleBooks(queryToSearch);
       const validResults = results.filter(
         (book) =>
-          book.googleBookId && book.googleBookId.trim() !== '' && book.googleBookId.toLowerCase() !== 'null'
+          book.googleBookId && 
+          book.googleBookId.trim() !== '' && 
+          book.googleBookId.toLowerCase() !== 'null'
       );
+      
       setSearchResults(validResults);
 
       if (validResults.length === 0) {
@@ -90,19 +115,32 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
     } finally {
       setIsSearching(false);
     }
-  }, [setSearchResults]);
+  }, [setSearchResults, setHasSearched]);
 
+  // Handle URL synchronization
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const queryFromUrl = queryParams.get('query');
 
-    if (queryFromUrl && queryFromUrl !== searchTerm) {
-      setSearchTerm(queryFromUrl);
-      executeSearch(queryFromUrl);
-    } else if (searchTerm && !queryFromUrl) {
-      navigate(`?query=${encodeURIComponent(searchTerm)}`, { replace: true });
+    if (isInitialLoad.current) {
+      if (queryFromUrl) {
+        if (queryFromUrl !== searchTerm) {
+          setSearchTerm(queryFromUrl);
+          executeSearch(queryFromUrl);
+        }
+      } else if (searchTerm && hasSearched) {
+        navigate(`?query=${encodeURIComponent(searchTerm)}`, { replace: true });
+      }
+      isInitialLoad.current = false;
+    } else {
+      if (queryFromUrl && queryFromUrl !== previousSearchTerm.current) {
+        setSearchTerm(queryFromUrl);
+        executeSearch(queryFromUrl);
+      }
     }
-  }, [location.search, searchTerm, executeSearch, navigate, setSearchTerm]);
+    
+    previousSearchTerm.current = queryFromUrl || searchTerm;
+  }, [location.search, searchTerm, hasSearched, executeSearch, navigate, setSearchTerm]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -113,7 +151,14 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
       setHasSearched(false);
       return;
     }
+    
+    setSearchScrollPosition(0);
+    setScrollRestored(true);
     navigate(`?query=${encodeURIComponent(searchTerm)}`);
+  };
+
+  const handleInputChange = (e) => {
+    setSearchTerm(e.target.value);
   };
 
   const handleAddBook = async (book) => {
@@ -222,17 +267,26 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
     }
   };
 
+  const handleClearSearch = () => {
+    clearSearch();
+    navigate(location.pathname);
+    setSearchErrorMessage(null);
+    setAddBookMessage(null);
+    setScrollRestored(false);
+  };
+
   return (
-    <div className="w-full" ref={searchContainerRef} onScroll={saveScrollPosition}>
+    <div className="w-full">
       <div className="mb-8 w-full">
         <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-6 text-center">
           Buscar Libros
         </h2>
+        
         <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4 w-full max-w-2xl mx-auto">
           <input
             type="text"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleInputChange}
             placeholder="Buscar libros en Google Books..."
             className="flex-1 p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
@@ -252,7 +306,19 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
             {isSearching ? 'Buscando...' : 'Buscar'}
           </button>
         </form>
+
+        {searchTerm && hasSearched && (
+          <div className="text-center mt-4">
+            <button
+              onClick={handleClearSearch}
+              className="text-blue-400 hover:text-blue-300 text-sm"
+            >
+              Limpiar búsqueda
+            </button>
+          </div>
+        )}
       </div>
+
       {addBookMessage && (
         <div key="add-message" className={`p-4 rounded-lg text-center mb-4 ${addBookMessage.type === 'success' ? 'bg-green-600' : 'bg-red-600'} text-white`}>
           {addBookMessage.text}
@@ -263,11 +329,13 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
           )}
         </div>
       )}
+
       {searchErrorMessage && (
         <div className="p-4 rounded-lg bg-red-600 text-white text-center mb-4">
           {searchErrorMessage}
         </div>
       )}
+
       <div className="w-full min-w-0">
         {isSearching ? (
           <LoadingSpinner />
@@ -279,14 +347,16 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
             emptyMessage={
               !hasSearched && !searchTerm.trim() ? (
                 <div className="col-span-full py-12 text-center">
-                  <p className="text-gray-400">Realiza una búsqueda para encontrar libros.</p>
+                  <div className="bg-gray-800 p-6 rounded-lg inline-block">
+                    <p className="text-gray-400 mb-4">Realiza una búsqueda para encontrar libros.</p>
+                  </div>
                 </div>
               ) : searchResults.length === 0 && hasSearched ? (
                 <div className="col-span-full py-12 text-center">
                   <div className="bg-gray-800 p-6 rounded-lg inline-block">
                     <p className="text-gray-400 mb-4">No se encontraron libros para tu búsqueda.</p>
                     <button
-                      onClick={() => setSearchTerm('')}
+                      onClick={handleClearSearch}
                       className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors"
                     >
                       Intentar otra búsqueda
@@ -298,6 +368,7 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
           />
         )}
       </div>
+
       {showModal && currentBook && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-gray-800 p-6 rounded-lg shadow-2xl max-w-sm w-full text-center">
