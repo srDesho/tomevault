@@ -32,7 +32,7 @@ const HomePage = ({ refreshBooks }) => {
     const [totalPages, setTotalPages] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
     const [scrollRestored, setScrollRestored] = useState(false);
-    const SEARCH_SIZE = 20;
+    const SEARCH_SIZE = 21;
     
     // Refs to manage component behavior across renders.
     const isInitialLoad = useRef(true);
@@ -257,28 +257,31 @@ const HomePage = ({ refreshBooks }) => {
     };
 
     return (
-        <div className="w-full px-4">
-            <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-8 text-center">
-                Mis Libros ({getBookCountText()})
+        <div className="w-full px-2 sm:px-4">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-4 sm:mb-6 lg:mb-8 text-center px-2 leading-tight">
+                <span className="block sm:inline break-words">Mis Libros</span>
+                <span className="block text-sm sm:text-base lg:text-lg text-gray-300 mt-1 sm:mt-0 sm:ml-2 break-words">
+                    ({getBookCountText()})
+                </span>
                 {isSearchActive && homeSearchTerm && (
-                    <span className="block text-sm text-gray-400 mt-2">
+                    <span className="block text-xs sm:text-sm text-gray-400 mt-2 px-2 break-words">
                         Buscando: "{homeSearchTerm}"
                     </span>
                 )}
             </h2>
 
-            <div className="mb-6">
+            <div className="mb-4 sm:mb-6">
                 <input
                     type="text"
                     value={homeSearchTerm}
                     onChange={(e) => setHomeSearchTerm(e.target.value)}
                     placeholder="Buscar en tus libros por título, autor o categoría..."
-                    className="w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full p-2 sm:p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                 />
                 {homeSearchTerm && (
                     <button
                         onClick={clearSearch}
-                        className="mt-2 text-blue-400 hover:text-blue-300 text-sm"
+                        className="mt-2 text-blue-400 hover:text-blue-300 text-xs sm:text-sm"
                     >
                         Limpiar búsqueda y ver todos
                     </button>
@@ -286,9 +289,9 @@ const HomePage = ({ refreshBooks }) => {
             </div>
 
             {notification && (
-                <div className={`p-4 rounded-lg text-center mb-4 ${
+                <div className={`p-3 sm:p-4 rounded-lg text-center mb-3 sm:mb-4 mx-2 text-sm sm:text-base ${
                     notification.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-                } text-white`}>
+                } text-white break-words`}>
                     {notification.message}
                 </div>
             )}
@@ -318,24 +321,28 @@ const HomePage = ({ refreshBooks }) => {
                     )}
                 </>
             ) : homeSearchTerm ? (
-                <div className="py-12 text-center">
-                    <div className="bg-gray-800 p-6 rounded-lg inline-block">
-                        <p className="text-gray-400 mb-4">No se encontraron libros que coincidan con "{homeSearchTerm}"</p>
+                <div className="py-8 sm:py-12 text-center px-2">
+                    <div className="bg-gray-800 p-4 sm:p-6 rounded-lg inline-block max-w-full">
+                        <p className="text-gray-400 mb-3 sm:mb-4 text-sm sm:text-base break-words">
+                            No se encontraron libros que coincidan con "{homeSearchTerm}"
+                        </p>
                         <button
                             onClick={clearSearch}
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors"
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors text-sm sm:text-base"
                         >
                             Ver todos los libros
                         </button>
                     </div>
                 </div>
             ) : (
-                <div className="py-12 text-center">
-                    <div className="bg-gray-800 p-6 rounded-lg inline-block">
-                        <p className="text-gray-400 mb-4">No tienes libros en tu colección</p>
+                <div className="py-8 sm:py-12 text-center px-2">
+                    <div className="bg-gray-800 p-4 sm:p-6 rounded-lg inline-block max-w-full">
+                        <p className="text-gray-400 mb-3 sm:mb-4 text-sm sm:text-base">
+                            No tienes libros en tu colección
+                        </p>
                         <a
                             href="/search"
-                            className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors"
+                            className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition-colors text-sm sm:text-base"
                         >
                             Agregar mi primer libro
                         </a>
@@ -344,13 +351,27 @@ const HomePage = ({ refreshBooks }) => {
             )}
 
             {showDeleteModal && bookToDelete && (
-                <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50">
-                    <div className="bg-gray-800 p-8 rounded-lg shadow-2xl max-w-sm w-full text-center">
-                        <h3 className="text-xl font-bold text-white mb-2">¿Eliminar este libro?</h3>
-                        <p className="text-gray-300 mb-6">"{bookToDelete.title}" se eliminará de tu colección.</p>
-                        <div className="flex justify-center gap-4">
-                            <button onClick={() => handleDelete(bookToDelete.id)} className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition">Eliminar</button>
-                            <button onClick={() => setShowDeleteModal(false)} className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition">Cancelar</button>
+                <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-3 sm:p-4 z-50">
+                    <div className="bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg shadow-2xl max-w-sm w-full text-center mx-2">
+                        <h3 className="text-lg sm:text-xl font-bold text-white mb-2 break-words">
+                            ¿Eliminar este libro?
+                        </h3>
+                        <p className="text-gray-300 mb-4 sm:mb-6 text-sm sm:text-base break-words">
+                            "{bookToDelete.title}" se eliminará de tu colección.
+                        </p>
+                        <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
+                            <button 
+                                onClick={() => handleDelete(bookToDelete.id)} 
+                                className="bg-red-500 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-red-600 transition text-sm sm:text-base order-2 sm:order-1"
+                            >
+                                Eliminar
+                            </button>
+                            <button 
+                                onClick={() => setShowDeleteModal(false)} 
+                                className="bg-gray-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-gray-700 transition text-sm sm:text-base order-1 sm:order-2"
+                            >
+                                Cancelar
+                            </button>
                         </div>
                     </div>
                 </div>

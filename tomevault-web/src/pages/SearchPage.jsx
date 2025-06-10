@@ -24,7 +24,6 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isInitialLoad = useRef(true);
-  const previousSearchTerm = useRef(searchTerm);
 
   const [isSearching, setIsSearching] = useState(false);
   const [searchErrorMessage, setSearchErrorMessage] = useState(null);
@@ -33,7 +32,7 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
   const [currentBook, setCurrentBook] = useState(null);
   const [scrollRestored, setScrollRestored] = useState(false);
 
-  // Guardar scroll del window (igual que en HomePage)
+  // Guardar scroll del window
   useEffect(() => {
     let scrollTimer;
     const handleScroll = () => {
@@ -50,7 +49,7 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
     };
   }, [setSearchScrollPosition]);
 
-  // Restaurar scroll después de carga (igual que en HomePage)
+  // Restaurar scroll después de carga
   useEffect(() => {
     if (!isSearching && searchResults.length > 0 && searchScrollPosition > 0 && !scrollRestored) {
       const restoreScroll = () => {
@@ -117,35 +116,41 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
     }
   }, [setSearchResults, setHasSearched]);
 
-  // Handle URL synchronization
+  // Sincronizar con URL al montar el componente
   useEffect(() => {
     const queryParams = new URLSearchParams(location.search);
     const queryFromUrl = queryParams.get('query');
 
-    if (isInitialLoad.current) {
-      if (queryFromUrl) {
-        if (queryFromUrl !== searchTerm) {
-          setSearchTerm(queryFromUrl);
-          executeSearch(queryFromUrl);
-        }
-      } else if (searchTerm && hasSearched) {
-        navigate(`?query=${encodeURIComponent(searchTerm)}`, { replace: true });
-      }
-      isInitialLoad.current = false;
-    } else {
-      if (queryFromUrl && queryFromUrl !== previousSearchTerm.current) {
-        setSearchTerm(queryFromUrl);
-        executeSearch(queryFromUrl);
-      }
+    if (queryFromUrl && queryFromUrl !== searchTerm) {
+      setSearchTerm(queryFromUrl);
+      executeSearch(queryFromUrl);
+    } else if (!queryFromUrl && searchTerm && hasSearched) {
+      // Si hay un término de búsqueda pero no en la URL, actualizar la URL
+      navigate(`?query=${encodeURIComponent(searchTerm)}`, { replace: true });
     }
-    
-    previousSearchTerm.current = queryFromUrl || searchTerm;
-  }, [location.search, searchTerm, hasSearched, executeSearch, navigate, setSearchTerm]);
+  }, []); // Solo ejecutar al montar
+
+  // Manejar cambios en la URL después del montaje inicial
+  useEffect(() => {
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+      return;
+    }
+
+    const queryParams = new URLSearchParams(location.search);
+    const queryFromUrl = queryParams.get('query');
+
+    if (queryFromUrl && queryFromUrl !== searchTerm) {
+      setSearchTerm(queryFromUrl);
+      executeSearch(queryFromUrl);
+    }
+  }, [location.search]);
 
   const handleSearch = (e) => {
     e.preventDefault();
+    
     if (!searchTerm.trim()) {
-      navigate(location.pathname);
+      navigate(location.pathname, { replace: true });
       setSearchErrorMessage('Por favor, ingresa un término de búsqueda.');
       setSearchResults([]);
       setHasSearched(false);
@@ -154,7 +159,11 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
     
     setSearchScrollPosition(0);
     setScrollRestored(true);
-    navigate(`?query=${encodeURIComponent(searchTerm)}`);
+    
+    // Actualizar la URL y ejecutar la búsqueda
+    const newUrl = `${location.pathname}?query=${encodeURIComponent(searchTerm)}`;
+    navigate(newUrl);
+    executeSearch(searchTerm);
   };
 
   const handleInputChange = (e) => {
@@ -269,7 +278,7 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
 
   const handleClearSearch = () => {
     clearSearch();
-    navigate(location.pathname);
+    navigate(location.pathname, { replace: true });
     setSearchErrorMessage(null);
     setAddBookMessage(null);
     setScrollRestored(false);

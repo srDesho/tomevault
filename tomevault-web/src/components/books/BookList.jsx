@@ -4,7 +4,8 @@ import BookCard from './BookCard';
 const BookList = ({ books, isSearchList, emptyMessage, onAdd, onDelete }) => {
   return (
     <div className="w-full">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 w-full">
+      {/* Grid responsive: 3 en móvil, 4 en sm, 5 en md, 6 en lg, 7 en xl */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 w-full">
         {books.length > 0 ? (
           books.map(book => (
             <BookCard 
