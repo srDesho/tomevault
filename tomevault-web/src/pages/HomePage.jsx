@@ -313,11 +313,14 @@ const HomePage = ({ refreshBooks }) => {
                     
                     {/* Show pagination only if there's more than one page */}
                     {totalPages > 1 && (
-                        <Pagination
-                            currentPage={isSearchActive ? searchPage : currentPage}
-                            totalPages={totalPages}
-                            onPageChange={handlePageChange}
-                        />
+                    <Pagination
+                        currentPage={isSearchActive ? searchPage : currentPage}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                        totalItems={totalElements}
+                        itemsPerPage={SEARCH_SIZE}
+                        itemName="libro"
+                    />
                     )}
                 </>
             ) : homeSearchTerm ? (

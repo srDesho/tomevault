@@ -4,6 +4,21 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+// Iconos válidos
+import { 
+  PencilIcon as EditIcon, 
+  EyeIcon, 
+  EyeOffIcon, 
+  TrashIcon, 
+  RefreshIcon, 
+  LockClosedIcon, 
+  XIcon,
+  SearchIcon 
+} from '@heroicons/react/outline';
+
+// Importa el componente Pagination usado en HomePage
+import Pagination from '../components/common/Pagination';
+
 const AdminUsersPage = () => {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
@@ -11,7 +26,8 @@ const AdminUsersPage = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [size] = useState(10);
+  const [totalElements, setTotalElements] = useState(0); // ← Nuevo estado
+  const [size] = useState(10); // ← Este es itemsPerPage
   const [sortBy, setSortBy] = useState('id');
   const [sortDir, setSortDir] = useState('asc');
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,7 +35,7 @@ const AdminUsersPage = () => {
   const [resetPasswordModal, setResetPasswordModal] = useState(null);
   const [newPassword, setNewPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [deleteConfirmModal, setDeleteConfirmModal] = useState(null); // ✅ Estado para el modal de eliminación
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState(null);
   const navigate = useNavigate();
 
   const isSuperAdmin = currentUser?.roles?.includes('SUPER_ADMIN');
@@ -33,6 +49,7 @@ const AdminUsersPage = () => {
 
       setUsers(response.content || []);
       setTotalPages(response.totalPages || 0);
+      setTotalElements(response.totalElements || 0); // ← Asegúrate de que tu API lo devuelve
       setPage(response.number || 0);
     } catch (err) {
       setMessage({ type: 'error', text: 'Error al cargar usuarios.' });
@@ -67,8 +84,9 @@ const AdminUsersPage = () => {
     }
   };
 
-  const goToPage = (pageNum) => {
-    fetchUsers(pageNum);
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    fetchUsers(newPage);
   };
 
   const handleToggleStatus = async (user) => {
@@ -123,7 +141,6 @@ const AdminUsersPage = () => {
     setResetPasswordModal(null);
   };
 
-  // ✅ Confirmación de eliminación permanente (hard delete)
   const confirmHardDelete = async () => {
     try {
       await AdminUserService.deleteUser(deleteConfirmModal);
@@ -140,12 +157,12 @@ const AdminUsersPage = () => {
   }
 
   return (
-    <div className="w-full">
-      <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-pink-500 mb-8 text-center">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-8 text-center">
         Gestión de Usuarios
       </h2>
 
-      {/* Mensajes de éxito/error */}
+      {/* Mensajes */}
       {message.text && (
         <div
           className={`p-4 rounded-lg text-center mb-6 ${
@@ -168,16 +185,18 @@ const AdminUsersPage = () => {
           />
           <button
             type="submit"
-            className="px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold"
+            className="px-4 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold flex items-center gap-1"
           >
+            <SearchIcon className="h-4 w-4" />
             Buscar
           </button>
           {isSearching && (
             <button
               type="button"
               onClick={clearSearch}
-              className="px-4 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg font-semibold"
+              className="px-4 py-3 bg-gray-600 hover:bg-gray-700 rounded-lg font-semibold flex items-center gap-1"
             >
+              <RefreshIcon className="h-4 w-4" />
               Limpiar
             </button>
           )}
@@ -223,7 +242,7 @@ const AdminUsersPage = () => {
               users.map((user) => (
                 <tr
                   key={user.id}
-                  className="border-t border-gray-700 hover:bg-gray-750"
+                  className="border-t border-gray-700 hover:bg-gray-750 transition-colors"
                 >
                   <td className="p-3">{user.id}</td>
                   <td className="p-3">{user.username}</td>
@@ -238,35 +257,38 @@ const AdminUsersPage = () => {
                       {user.enabled ? 'Activo' : 'Inactivo'}
                     </span>
                   </td>
-                  <td className="p-3 space-x-2">
+                  <td className="p-3 space-x-1">
                     <button
                       onClick={() => handleEditUser(user.id)}
-                      className="text-blue-400 hover:underline text-sm"
+                      className="text-blue-400 hover:text-blue-300 p-1 rounded transition"
+                      title="Editar"
                     >
-                      Editar
+                      <EditIcon className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleResetPassword(user.id)}
-                      className="text-yellow-400 hover:underline text-sm"
+                      className="text-yellow-400 hover:text-yellow-300 p-1 rounded transition"
+                      title="Restablecer contraseña"
                     >
-                      Contraseña
+                      <LockClosedIcon className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => handleToggleStatus(user)}
-                      className={`text-sm ${
-                        user.enabled ? 'text-red-400' : 'text-green-400'
-                      } hover:underline`}
+                      className={`p-1 rounded transition ${
+                        user.enabled ? 'text-red-400 hover:text-red-300' : 'text-green-400 hover:text-green-300'
+                      }`}
+                      title={user.enabled ? 'Desactivar' : 'Activar'}
                     >
-                      {user.enabled ? 'Desactivar' : 'Activar'}
+                      {user.enabled ? <EyeIcon className="h-4 w-4" /> : <EyeOffIcon className="h-4 w-4" />}
                     </button>
 
-                    {/* ✅ Solo SUPER_ADMIN ve el botón de eliminar */}
                     {isSuperAdmin && (
                       <button
                         onClick={() => setDeleteConfirmModal(user.id)}
-                        className="text-red-400 hover:underline text-sm font-semibold"
+                        className="text-red-400 hover:text-red-300 p-1 rounded transition"
+                        title="Eliminar"
                       >
-                        Eliminar
+                        <TrashIcon className="h-4 w-4" />
                       </button>
                     )}
                   </td>
@@ -276,20 +298,15 @@ const AdminUsersPage = () => {
           </tbody>
         </table>
 
-        {/* Paginación */}
-        <div className="flex justify-center mt-6 space-x-2">
-          {[...Array(totalPages)].map((_, i) => (
-            <button
-              key={i}
-              onClick={() => goToPage(i)}
-              className={`px-3 py-1 rounded ${
-                i === page ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'
-              }`}
-            >
-              {i + 1}
-            </button>
-          ))}
-        </div>
+        {/* Paginación igual a HomePage */}
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          totalItems={totalElements}
+          itemsPerPage={size}
+          itemName="usuario"
+        />
       </div>
 
       {/* Modal: Restablecer contraseña */}
