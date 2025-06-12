@@ -257,7 +257,7 @@ const HomePage = ({ refreshBooks }) => {
     };
 
     return (
-        <div className="w-full px-2 sm:px-4">
+        <div className="w-full px-2 sm:px-4 max-w-full overflow-x-hidden">
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-4 sm:mb-6 lg:mb-8 text-center px-2 leading-tight">
                 <span className="block sm:inline break-words">Mis Libros</span>
                 <span className="block text-sm sm:text-base lg:text-lg text-gray-300 mt-1 sm:mt-0 sm:ml-2 break-words">
@@ -270,13 +270,13 @@ const HomePage = ({ refreshBooks }) => {
                 )}
             </h2>
 
-            <div className="mb-4 sm:mb-6">
+            <div className="mb-4 sm:mb-6 w-full max-w-full">
                 <input
                     type="text"
                     value={homeSearchTerm}
                     onChange={(e) => setHomeSearchTerm(e.target.value)}
                     placeholder="Buscar en tus libros por título, autor o categoría..."
-                    className="w-full p-2 sm:p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+                    className="w-full max-w-full p-2 sm:p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
                 />
                 {homeSearchTerm && (
                     <button
