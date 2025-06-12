@@ -14,6 +14,7 @@ import * as AuthService from './services/AuthService';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SearchProvider } from './context/SearchContext';
 import { HomeSearchProvider } from './context/HomeSearchContext';
+import { AdminUsersProvider } from './context/AdminUsersContext';
 
 import './App.css';
 import './index.css';
@@ -56,64 +57,66 @@ const App = () => {
         <AuthProvider>
             <SearchProvider>
                 <HomeSearchProvider>
-                    <Router>
-                        <div className="min-h-screen flex flex-col bg-gray-900 font-sans text-gray-100">
-                            <Header />
-                            <main className="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                                <Routes>
-                                    <Route path="/login" element={<LoginPage />} />
-                                    <Route path="/register" element={<RegisterPage />} />
-                                    <Route
-                                        path="/"
-                                        element={
-                                            <ProtectedRoute>
-                                                <HomePage
-                                                    myBooks={myBooks}
-                                                    isLoading={isLoadingMyBooks}
+                    <AdminUsersProvider>
+                        <Router>
+                            <div className="min-h-screen flex flex-col bg-gray-900 font-sans text-gray-100">
+                                <Header />
+                                <main className="flex-grow w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                                    <Routes>
+                                        <Route path="/login" element={<LoginPage />} />
+                                        <Route path="/register" element={<RegisterPage />} />
+                                        <Route
+                                            path="/"
+                                            element={
+                                                <ProtectedRoute>
+                                                    <HomePage
+                                                        myBooks={myBooks}
+                                                        isLoading={isLoadingMyBooks}
+                                                        refreshBooks={fetchMyBooks}
+                                                    />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+                                        <Route
+                                            path="/settings"
+                                            element={
+                                                <ProtectedRoute>
+                                                    <UserSettingsPage />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+                                        <Route
+                                            path="/admin/users"
+                                            element={
+                                                <AdminRoute>
+                                                    <AdminUsersPage />
+                                                </AdminRoute>
+                                            }
+                                        />
+                                        <Route
+                                            path="/admin/users/:id/edit"
+                                            element={
+                                                <AdminRoute>
+                                                    <EditUserPage />
+                                                </AdminRoute>
+                                            }
+                                        />
+                                        <Route
+                                            path="/search"
+                                            element={
+                                                <SearchPage
+                                                    onAdd={handleAddBookFromSearch}
                                                     refreshBooks={fetchMyBooks}
                                                 />
-                                            </ProtectedRoute>
-                                        }
-                                    />
-                                    <Route
-                                        path="/settings"
-                                        element={
-                                            <ProtectedRoute>
-                                                <UserSettingsPage />
-                                            </ProtectedRoute>
-                                        }
-                                    />
-                                    <Route
-                                        path="/admin/users"
-                                        element={
-                                            <AdminRoute>
-                                                <AdminUsersPage />
-                                            </AdminRoute>
-                                        }
-                                    />
-                                    <Route
-                                        path="/admin/users/:id/edit"
-                                        element={
-                                            <AdminRoute>
-                                                <EditUserPage />
-                                            </AdminRoute>
-                                        }
-                                    />
-                                    <Route
-                                        path="/search"
-                                        element={
-                                            <SearchPage
-                                                onAdd={handleAddBookFromSearch}
-                                                refreshBooks={fetchMyBooks}
-                                            />
-                                        }
-                                    />
-                                    <Route path="/books/:bookId" element={<BookDetailPage />} />
-                                    <Route path="*" element={<Navigate to="/" />} />
-                                </Routes>
-                            </main>
-                        </div>
-                    </Router>
+                                            }
+                                        />
+                                        <Route path="/books/:bookId" element={<BookDetailPage />} />
+                                        <Route path="*" element={<Navigate to="/" />} />
+                                    </Routes>
+                                </main>
+                            </div>
+                        </Router>
+                    </AdminUsersProvider>
                 </HomeSearchProvider>
             </SearchProvider>
         </AuthProvider>
