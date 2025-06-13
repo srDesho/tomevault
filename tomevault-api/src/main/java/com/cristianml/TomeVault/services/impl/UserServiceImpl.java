@@ -61,7 +61,7 @@ public class UserServiceImpl implements IUserService {
         // Persist updated user information to database
         UserEntity updatedUser = this.userRepository.save(user);
 
-        return this.generateAuthResponseForUser(updatedUser, "Profile updated successfully");
+        return this.generateAuthResponseForUser(updatedUser, "Perfil actualizado correctamente.");
     }
 
     @Override
@@ -69,7 +69,7 @@ public class UserServiceImpl implements IUserService {
 
         // Validate current password correctness using secure password encoder
         if (!passwordEncoder.matches(requestDTO.getCurrentPassword(), user.getPassword())) {
-            throw new BadCredentialsException("Current password is incorrect");
+            throw new IllegalArgumentException("Current password is incorrect");
         }
         // Ensure new password confirmation consistency for user experience
         if (!requestDTO.getNewPassword().equals(requestDTO.getConfirmPassword())) {
@@ -84,7 +84,7 @@ public class UserServiceImpl implements IUserService {
         user.setPassword(passwordEncoder.encode(requestDTO.getNewPassword()));
         this.userRepository.save(user);
 
-        return this.generateAuthResponseForUser(user, "Password changed successfully");
+        return this.generateAuthResponseForUser(user, "Contraseña actualizada correctamente.");
     }
 
     private AuthResponse generateAuthResponseForUser(UserEntity user, String message) {
