@@ -1,5 +1,3 @@
-// src/services/AuthService.js
-
 // Base URL for the backend API.
 export const BACKEND_BASE_URL = 'http://localhost:8080/api/v1';
 
@@ -54,19 +52,19 @@ export const login = async (username, password) => {
         return true;
       } else {
         console.error('[AuthService] Login successful, but no JWT received.');
-        throw new Error('Authentication token was not received.');
+        throw new Error('No se recibió el token de autenticación.');
       }
     } else if (response.status === 401) {
       console.warn('[AuthService] Login failed: Invalid credentials.');
-      throw new Error('Invalid credentials. Please try again.');
+      throw new Error('Credenciales inválidas. Por favor, inténtelo de nuevo.');
     } else {
       const errorBody = await response.text();
       console.error('[AuthService] Error during login:', response.status, errorBody);
-      throw new Error(`Error ${response.status}: ${errorBody || 'Unknown error'}`);
+      throw new Error(`Error ${response.status}: ${errorBody || 'Error desconocido'}`);
     }
   } catch (error) {
     console.error('[AuthService] Network or unexpected error during login:', error);
-    throw new Error(error.message || 'Failed to connect to the authentication server.');
+    throw new Error(error.message || 'No se pudo conectar con el servidor de autenticación.');
   }
 };
 
@@ -98,7 +96,7 @@ export const register = async (userData) => {
     } else {
       const errorBody = await response.text();
       console.error('[AuthService] Registration failed:', response.status, errorBody);
-      let errorMessage = 'Registration failed.';
+      let errorMessage = 'El registro falló.';
       try {
         const errorData = JSON.parse(errorBody);
         if (errorData.message) {
@@ -107,13 +105,13 @@ export const register = async (userData) => {
           errorMessage = errorData.errors.map(err => err.defaultMessage || err.message).join(', ');
         }
       } catch (parseError) {
-        errorMessage = errorBody || 'Unknown error during registration.';
+        errorMessage = errorBody || 'Error desconocido durante el registro.';
       }
       throw new Error(errorMessage);
     }
   } catch (error) {
     console.error('[AuthService] Network or unexpected error during registration:', error);
-    throw new Error(error.message || 'Failed to connect to the registration server.');
+    throw new Error(error.message || 'No se pudo conectar con el servidor de registro.');
   }
 };
 

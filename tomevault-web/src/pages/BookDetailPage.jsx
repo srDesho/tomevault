@@ -94,7 +94,7 @@ const BookDetailPage = () => {
 
   return (
     <>
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <Link to="/" className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-6 transition-colors">
           ← Volver
         </Link>
@@ -108,68 +108,78 @@ const BookDetailPage = () => {
         )}
 
         <div className="bg-gray-800 rounded-xl shadow-xl overflow-hidden">
-          <div className="flex flex-col md:flex-row">
-            <div className="md:w-1/3 lg:w-1/4 p-4 md:p-6">
+          <div className="flex flex-col md:flex-row items-start gap-6 p-4 md:p-6">
+            {/* Imagen centrada y responsive */}
+            <div className="flex justify-center w-full md:w-auto md:flex-shrink-0">
               <img
                 src={bookDetails.thumbnail || "https://placehold.co/400x600/1a202c/FFF?text=No+Cover"}
                 alt={`Portada de ${bookDetails.title}`}
-                className="w-full rounded-lg shadow-lg"
+                className="w-full max-w-[200px] md:max-w-[250px] rounded-lg shadow-lg object-cover"
                 onError={(e) => {
                   e.target.onerror = null;
                   e.target.src = "https://placehold.co/400x600/1a202c/FFF?text=No+Cover";
                 }}
               />
             </div>
-            
-            <div className="md:w-2/3 lg:w-3/4 p-6">
-              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
+
+            {/* Contenido del libro */}
+            <div className="flex-1 min-w-0 w-full">
+              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 text-center md:text-left">
                 {bookDetails.title}
               </h1>
-              <p className="text-xl text-gray-400 mb-6">
+              <p className="text-xl text-gray-400 mb-6 text-center md:text-left">
                 {bookDetails.author}
               </p>
               
               <div className="prose prose-invert max-w-none mb-8">
-                <p className="text-gray-300">
-                  {bookDetails.description || "No hay descripción disponible."}
-                </p>
+                <div 
+                  className="text-gray-300"
+                  dangerouslySetInnerHTML={{ 
+                    __html: bookDetails.description || "No hay descripción disponible." 
+                  }}
+                />
               </div>
               
-              <div className="flex flex-wrap items-center gap-4 mt-8">
-                <div className="flex items-center bg-gray-700 rounded-lg px-4 py-3">
+              {/* Controles responsive */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 mt-8">
+                {/* Contador de lecturas - siempre visible */}
+                <div className="flex items-center justify-center bg-gray-700 rounded-lg px-4 py-3">
                   <span className="text-blue-400 mr-2">📖</span>
                   <span className="font-medium">Lecturas:</span>
                   <span className="ml-2 text-white">{readCount}</span>
                 </div>
                 
-                {isLoggedIn ? (
-                  <>
-                    <button
-                      onClick={() => setShowIncrementModal(true)}
-                      className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition-colors"
-                    >
-                      <PlusIcon className="h-5 w-5 mr-2" />
-                      Añadir lectura
-                    </button>
-                    
-                    <button
-                      onClick={() => readCount > 0 && setShowDecrementModal(true)}
-                      disabled={readCount <= 0}
-                      className={`flex items-center px-4 py-3 rounded-lg transition-colors ${
-                        readCount <= 0 
-                          ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
-                          : 'bg-red-600 hover:bg-red-700 text-white'
-                      }`}
-                    >
-                      <MinusIcon className="h-5 w-5 mr-2" />
-                      Quitar lectura
-                    </button>
-                  </>
-                ) : (
-                  <div className="text-yellow-400 text-sm">
-                    Inicia sesión para registrar lecturas
-                  </div>
-                )}
+                {/* Botones - se apilan en móvil */}
+                <div className="flex flex-col xs:flex-row gap-2 flex-1 justify-center sm:justify-end">
+                  {isLoggedIn ? (
+                    <>
+                      <button
+                        onClick={() => setShowIncrementModal(true)}
+                        className="flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition-colors flex-1 xs:flex-none"
+                      >
+                        <PlusIcon className="h-5 w-5 mr-2" />
+                        Añadir lectura
+                      </button>
+                      
+                      <button
+                        onClick={() => readCount > 0 && setShowDecrementModal(true)}
+                        disabled={readCount <= 0}
+                        className={`flex items-center justify-center px-4 py-3 rounded-lg transition-colors flex-1 xs:flex-none ${
+                          readCount <= 0 
+                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                            : 'bg-red-600 hover:bg-red-700 text-white'
+                        }`}
+                      >
+                        <MinusIcon className="h-5 w-5 mr-2" />
+                        Quitar lectura
+                      </button>
+                    </>
+                  ) : (
+                    <div className="text-yellow-400 text-sm text-center py-2">
+                      Inicia sesión para registrar lecturas
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

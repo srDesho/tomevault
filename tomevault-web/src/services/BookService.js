@@ -22,11 +22,11 @@ const fetchWithRetry = async (url, options = {}, retries = 3, delay = 1000) => {
             const response = await fetch(url, newOptions);
             if (!response.ok) {
                 const errorBody = await response.text();
-                throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}. Details: ${errorBody}`);
+                throw new Error(`Error HTTP! Estado: ${response.status} - ${response.statusText}. Detalles: ${errorBody}`);
             }
             return await response.json();
         } catch (error) {
-            console.error(`Attempt ${i + 1} failed for ${url}:`, error);
+            console.error(`Intento ${i + 1} fallido para ${url}:`, error);
             if (i < retries - 1) {
                 await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
             } else {
@@ -46,7 +46,7 @@ export const getMyBooks = async (page = 0, size = 12) => {
         return response;
     } catch (error) {
         console.error("Error getting paginated books:", error);
-        throw new Error("Could not load books.");
+        throw new Error("No se pudieron cargar los libros.");
     }
 };
 
@@ -75,7 +75,7 @@ export const getAllMyBooks = async () => {
         return allBooks;
     } catch (error) {
         console.error("Error getting all books:", error);
-        throw new Error("Could not load all books.");
+        throw new Error("No se pudieron cargar todos los libros.");
     }
 };
 
@@ -92,7 +92,7 @@ export const getBookById = async (googleBookId) => {
             return { ...googleApiBook, fromUserCollection: false };
         } catch (googleApiError) {
             console.error(`Error getting book with Google ID ${googleBookId} from Google API:`, googleApiError);
-            throw new Error("Could not load book information from your collection or from Google Books.");
+            throw new Error("No se pudo cargar la información del libro desde tu colección ni desde Google Books.");
         }
     }
 };
@@ -106,7 +106,7 @@ export const searchGoogleBooks = async (query) => {
         return data;
     } catch (error) {
         console.error("Error searching books on your Spring Backend:", error);
-        throw new Error("Could not search for books. Check the connection to your backend.");
+        throw new Error("No se pudieron buscar libros. Verifica la conexión con tu backend.");
     }
 };
 
@@ -148,7 +148,7 @@ export const updateReadCount = async (bookId, newReadCount) => {
     try {
         const currentBook = await getBookById(bookId);
         if (!currentBook) {
-            throw new Error("Book not found to update read count.");
+            throw new Error("No se encontró el libro para actualizar el contador de lecturas.");
         }
         const bookToUpdate = {
             ...currentBook,
@@ -162,7 +162,7 @@ export const updateReadCount = async (bookId, newReadCount) => {
         return updatedBook;
     } catch (error) {
         console.error(`Error updating read count for book ${bookId}:`, error);
-        throw new Error("Could not update read count. Check backend connection or permissions.");
+        throw new Error("No se pudo actualizar el contador de lecturas. Verifica la conexión con el backend o tus permisos.");
     }
 };
 
@@ -176,7 +176,7 @@ export const incrementReadCount = async (bookId) => {
         return updatedBook;
     } catch (error) {
         console.error("Error incrementing read count:", error);
-        throw new Error(error.message || "Could not increment read count.");
+        throw new Error(error.message || "No se pudo incrementar el contador de lecturas.");
     }
 };
 
@@ -190,7 +190,7 @@ export const decrementReadCount = async (bookId) => {
         return updatedBook;
     } catch (error) {
         console.error("Error decrementing read count:", error);
-        throw new Error(error.message || "Could not decrement read count.");
+        throw new Error(error.message || "No se pudo decrementar el contador de lecturas.");
     }
 };
 
@@ -204,7 +204,7 @@ export const deleteBook = async (bookId) => {
         return true;
     } catch (error) {
         console.error("Error deleting book:", error);
-        throw new Error(error.message || "Could not delete the book.");
+        throw new Error(error.message || "No se pudo eliminar el libro.");
     }
 };
 
