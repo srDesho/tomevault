@@ -1,5 +1,6 @@
 package com.cristianml.TomeVault.services.impl;
 
+import static com.cristianml.TomeVault.utilities.Utilities.validatePassword;
 import com.cristianml.TomeVault.dtos.requests.UserCreateRequestDTO;
 import com.cristianml.TomeVault.dtos.requests.UserProfileUpdateRequestDTO;
 import com.cristianml.TomeVault.dtos.responses.UserProfileResponseDTO;
@@ -186,22 +187,4 @@ public class AdminUserServiceImpl implements IAdminUserService {
         return users.map(userMapper::toProfileResponse);
     }
 
-    // Validate password strength requirements
-    private void validatePassword(String password) {
-        if (password == null || password.trim().isEmpty()) {
-            throw new IllegalArgumentException("Password cannot be empty");
-        }
-        if (password.length() < 8) {
-            throw new IllegalArgumentException("Password must be at least 8 characters long");
-        }
-        if (!password.matches(".*[A-Z].*")) {
-            throw new IllegalArgumentException("Password must contain at least one uppercase letter");
-        }
-        if (!password.matches(".*[a-z].*")) {
-            throw new IllegalArgumentException("Password must contain at least one lowercase letter");
-        }
-        if (!password.matches(".*[0-9].*")) {
-            throw new IllegalArgumentException("Password must contain at least one digit");
-        }
-    }
 }

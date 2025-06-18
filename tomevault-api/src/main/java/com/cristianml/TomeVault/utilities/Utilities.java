@@ -50,5 +50,26 @@ public class Utilities {
             // Return a new ResponseEntity with the error information
             return new ResponseEntity<Object>(map, HttpStatus.INTERNAL_SERVER_ERROR);
         }
+
+    }
+
+    // Validate password strength requirements
+    public static void validatePassword(String password) {
+        if (password == null || password.trim().isEmpty()) {
+            throw new IllegalArgumentException("La contraseña no puede estar vacía");
+        }
+        if (password.length() < 8) {
+            throw new IllegalArgumentException("La contraseña debe tener al menos 8 caracteres de longitud");
+        }
+        if (!password.matches(".*[A-Z].*")) {
+            throw new IllegalArgumentException("La contraseña debe contener al menos una letra mayúscula");
+        }
+        if (!password.matches(".*[a-z].*")) {
+            throw new IllegalArgumentException("La contraseña debe contener al menos una letra minúscula");
+        }
+        if (!password.matches(".*[0-9].*")) {
+            throw new IllegalArgumentException("La contraseña debe contener al menos un dígito");
+        }
+
     }
 }

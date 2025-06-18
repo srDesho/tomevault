@@ -10,7 +10,6 @@ import com.cristianml.TomeVault.security.dtos.AuthResponse;
 import com.cristianml.TomeVault.services.IUserService;
 import com.cristianml.TomeVault.utilities.JwtUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -20,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.cristianml.TomeVault.utilities.Utilities.validatePassword;
 
 @Service
 @RequiredArgsConstructor
@@ -79,6 +80,9 @@ public class UserServiceImpl implements IUserService {
         if (passwordEncoder.matches(requestDTO.getNewPassword(), user.getPassword())) {
             throw new IllegalArgumentException("New password must be different from current password");
         }
+
+        // Validate
+        validatePassword(requestDTO.getNewPassword());
 
         // Set the new password
         user.setPassword(passwordEncoder.encode(requestDTO.getNewPassword()));

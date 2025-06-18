@@ -1,5 +1,6 @@
 package com.cristianml.TomeVault.services.impl;
 
+import static com.cristianml.TomeVault.utilities.Utilities.validatePassword;
 import com.cristianml.TomeVault.dtos.requests.UserRegistrationRequestDTO;
 import com.cristianml.TomeVault.entities.UserEntity;
 import com.cristianml.TomeVault.mappers.UserMapper;
@@ -91,6 +92,7 @@ public class AuthServiceImpl implements IAuthService {
             throw new IllegalStateException("Default USER role not found in database");
         }
 
+        validatePassword(password);
         // Build new user entity using mapper for consistent field mapping
         UserEntity userEntity = this.userMapper.toEntity(registrationRequestDTO);
         userEntity.setPassword(passwordEncoder.encode(registrationRequestDTO.getPassword())); // Secure password encoding
