@@ -3,27 +3,30 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import * as BookService from '../services/BookService';
 import * as AuthService from '../services/AuthService';
-import { PlusIcon, MinusIcon, BookmarkIcon, ArrowLeftIcon } from '@heroicons/react/outline';
+import { PlusIcon, MinusIcon, BookmarkIcon, ArrowLeftIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/outline';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const BookDetailPage = () => {
   const { bookId } = useParams();
   const navigate = useNavigate();
+  
   const [bookDetails, setBookDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [readCount, setReadCount] = useState(0);
   const [showIncrementModal, setShowIncrementModal] = useState(false);
   const [showDecrementModal, setShowDecrementModal] = useState(false);
-  const [message, setMessage] = useState(null);
-  const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
   const [internalId, setInternalId] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(AuthService.isAuthenticated());
+  const [isInCollection, setIsInCollection] = useState(false);
 
   useEffect(() => {
     const fetchBook = async () => {
       try {
         setLoading(true);
-        setMessage(null);
+        setToast(null);
+        
+        // Try to get book - this will check collection first, then Google API
         const book = await BookService.getBookById(bookId);
         
         if (!book) {
@@ -31,15 +34,21 @@ const BookDetailPage = () => {
         }
 
         setBookDetails(book);
-        setReadCount(book.readCount || 0);
-        setInternalId(book.id);
+        
+        // Check if book is from user's collection
+        if (book.fromUserCollection && book.id) {
+          setIsInCollection(true);
+          setInternalId(book.id);
+          setReadCount(book.readCount || 0);
+        } else {
+          setIsInCollection(false);
+          setInternalId(null);
+          setReadCount(0);
+        }
+        
       } catch (error) {
         console.error("Error fetching book:", error);
-        setError(error);
-        setMessage({ 
-          type: 'error', 
-          text: error.message || "Error al cargar los detalles del libro." 
-        });
+        showToast('error', error.message || "Error al cargar los detalles del libro.");
       } finally {
         setLoading(false);
       }
@@ -48,35 +57,70 @@ const BookDetailPage = () => {
     fetchBook();
   }, [bookId]);
 
+  // Show toast notification with auto-dismiss
+  const showToast = (type, message) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
+
   const handleIncrement = async () => {
     if (!isLoggedIn) {
-      setMessage({ type: 'error', text: "Debes iniciar sesión para registrar lecturas" });
+      showToast('error', "Debes iniciar sesión para registrar lecturas");
       setTimeout(() => navigate('/login'), 1500);
+      return;
+    }
+
+    if (!isInCollection || !internalId) {
+      showToast('error', "Primero debes agregar este libro a tu colección");
       return;
     }
 
     try {
       const updatedBook = await BookService.incrementReadCount(internalId);
       setReadCount(updatedBook.readCount);
-      setMessage({ type: 'success', text: `Contador incrementado a ${updatedBook.readCount}` });
-      setTimeout(() => setMessage(null), 3000);
+      showToast('success', `Contador incrementado a ${updatedBook.readCount}`);
     } catch (error) {
-      setMessage({ type: 'error', text: error.message });
-      setTimeout(() => setMessage(null), 3000);
+      showToast('error', error.message);
     }
   };
 
   const handleDecrement = async () => {
-    if (!isLoggedIn) return;
+    if (!isLoggedIn) {
+      showToast('error', "Debes iniciar sesión para registrar lecturas");
+      return;
+    }
+
+    if (!isInCollection || !internalId) {
+      showToast('error', "Este libro no está en tu colección");
+      return;
+    }
 
     try {
       const updatedBook = await BookService.decrementReadCount(internalId);
       setReadCount(updatedBook.readCount);
-      setMessage({ type: 'success', text: `Contador decrementado a ${updatedBook.readCount}` });
-      setTimeout(() => setMessage(null), 3000);
+      showToast('success', `Contador decrementado a ${updatedBook.readCount}`);
     } catch (error) {
-      setMessage({ type: 'error', text: error.message });
-      setTimeout(() => setMessage(null), 3000);
+      showToast('error', error.message);
+    }
+  };
+
+  const handleAddToCollection = async () => {
+    if (!isLoggedIn) {
+      showToast('error', "Debes iniciar sesión para agregar libros");
+      setTimeout(() => navigate('/login'), 1500);
+      return;
+    }
+
+    try {
+      showToast('info', "Agregando libro a tu colección...");
+      const addedBook = await BookService.saveBookFromGoogle(bookDetails.googleBookId);
+      setInternalId(addedBook.id);
+      setReadCount(addedBook.readCount || 0);
+      setIsInCollection(true);
+      setBookDetails(addedBook);
+      showToast('success', `"${bookDetails.title}" agregado a tu colección`);
+    } catch (error) {
+      showToast('error', error.message || "Error al agregar el libro a tu colección");
     }
   };
 
@@ -84,12 +128,12 @@ const BookDetailPage = () => {
     return <LoadingSpinner />;
   }
 
-  if (error || !bookDetails) {
+  if (!bookDetails) {
     return (
       <div className="w-full px-2 sm:px-4 max-w-full overflow-x-hidden">
         <div className="max-w-6xl mx-auto text-center py-12 sm:py-16">
           <h3 className="text-lg sm:text-xl text-red-400 mb-4">
-            {message ? message.text : "Libro no encontrado o error al cargar."}
+            {toast ? toast.message : "Libro no encontrado o error al cargar."}
           </h3>
           <Link to="/" className="text-blue-400 hover:text-blue-300 text-sm sm:text-base">
             Volver a la colección
@@ -116,12 +160,21 @@ const BookDetailPage = () => {
           Volver
         </Link>
 
-        {/* Messages */}
-        {message && (
-          <div className={`p-3 sm:p-4 rounded-lg text-center mb-4 mx-2 text-sm sm:text-base ${
-            message.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-          } text-white break-words`}>
-            {message.text}
+        {/* Toast notification - appears in top right corner */}
+        {toast && (
+          <div className={`fixed top-20 right-4 z-50 p-4 rounded-lg shadow-2xl flex items-center gap-3 animate-slide-in max-w-md ${
+            toast.type === 'success' 
+              ? 'bg-green-600 text-white' 
+              : toast.type === 'error'
+              ? 'bg-red-600 text-white'
+              : 'bg-blue-600 text-white'
+          }`}>
+            {toast.type === 'success' ? (
+              <CheckCircleIcon className="h-6 w-6 flex-shrink-0" />
+            ) : (
+              <XCircleIcon className="h-6 w-6 flex-shrink-0" />
+            )}
+            <span className="text-sm sm:text-base font-medium">{toast.message}</span>
           </div>
         )}
 
@@ -159,6 +212,15 @@ const BookDetailPage = () => {
                 />
               </div>
               
+              {/* Warning message - only show if NOT in collection */}
+              {!isInCollection && (
+                <div className="mb-4 p-3 bg-yellow-900 bg-opacity-20 border border-yellow-600 rounded-lg">
+                  <p className="text-yellow-400 text-sm text-center">
+                    ⚠️ Este libro no está en tu colección. Agrégalo para poder registrar lecturas.
+                  </p>
+                </div>
+              )}
+              
               {/* Read Count and Actions - Responsive */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mt-6 sm:mt-8">
                 {/* Read Counter */}
@@ -172,26 +234,40 @@ const BookDetailPage = () => {
                 <div className="flex flex-col xs:flex-row gap-2 flex-1 justify-center sm:justify-end">
                   {isLoggedIn ? (
                     <>
-                      <button
-                        onClick={() => setShowIncrementModal(true)}
-                        className="flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition-colors flex-1 xs:flex-none text-sm sm:text-base"
-                      >
-                        <PlusIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                        Añadir lectura
-                      </button>
-                      
-                      <button
-                        onClick={() => readCount > 0 && setShowDecrementModal(true)}
-                        disabled={readCount <= 0}
-                        className={`flex items-center justify-center px-4 py-3 rounded-lg transition-colors flex-1 xs:flex-none text-sm sm:text-base ${
-                          readCount <= 0 
-                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
-                            : 'bg-red-600 hover:bg-red-700 text-white'
-                        }`}
-                      >
-                        <MinusIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-                        Quitar lectura
-                      </button>
+                      {isInCollection ? (
+                        // Book is in collection - show increment/decrement buttons
+                        <>
+                          <button
+                            onClick={() => setShowIncrementModal(true)}
+                            className="flex items-center justify-center bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition-colors flex-1 xs:flex-none text-sm sm:text-base"
+                          >
+                            <PlusIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                            Añadir lectura
+                          </button>
+                          
+                          <button
+                            onClick={() => readCount > 0 && setShowDecrementModal(true)}
+                            disabled={readCount <= 0}
+                            className={`flex items-center justify-center px-4 py-3 rounded-lg transition-colors flex-1 xs:flex-none text-sm sm:text-base ${
+                              readCount <= 0 
+                                ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                                : 'bg-red-600 hover:bg-red-700 text-white'
+                            }`}
+                          >
+                            <MinusIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                            Quitar lectura
+                          </button>
+                        </>
+                      ) : (
+                        // Book is NOT in collection - show add button
+                        <button
+                          onClick={handleAddToCollection}
+                          className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg transition-colors flex-1 xs:flex-none text-sm sm:text-base"
+                        >
+                          <PlusIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                          Agregar a mi colección
+                        </button>
+                      )}
                     </>
                   ) : (
                     <div className="text-yellow-400 text-xs sm:text-sm text-center py-2 px-4 bg-yellow-900 bg-opacity-20 rounded-lg border border-yellow-600">
@@ -268,6 +344,22 @@ const BookDetailPage = () => {
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        @keyframes slide-in {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-in {
+          animation: slide-in 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };

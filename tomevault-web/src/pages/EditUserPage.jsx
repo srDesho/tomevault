@@ -4,6 +4,7 @@ import AdminUserService from '../services/AdminUserService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/outline';
 
 const EditUserPage = () => {
   const { id } = useParams();
@@ -19,8 +20,14 @@ const EditUserPage = () => {
     birthDate: ''
   });
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [toast, setToast] = useState(null);
   const [errors, setErrors] = useState({});
+
+  // Show toast notification with auto-dismiss
+  const showToast = (type, message) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   // Load user data on component mount
   useEffect(() => {
@@ -34,7 +41,7 @@ const EditUserPage = () => {
           birthDate: formattedDate
         });
       } catch (err) {
-        setMessage({ type: 'error', text: 'Error al cargar los datos del usuario.' });
+        showToast('error', 'Error al cargar los datos del usuario.');
       } finally {
         setLoading(false);
       }
@@ -95,12 +102,12 @@ const EditUserPage = () => {
 
     try {
       await AdminUserService.updateUser(id, user);
-      setMessage({ type: 'success', text: 'Usuario actualizado correctamente' });
+      showToast('success', 'Usuario actualizado correctamente');
       // Redirect after 2 seconds
       setTimeout(() => navigate('/admin/users'), 2000);
     } catch (err) {
       const errorText = err.message || 'Error al actualizar el usuario';
-      setMessage({ type: 'error', text: errorText });
+      showToast('error', errorText);
     }
   };
 
@@ -115,12 +122,19 @@ const EditUserPage = () => {
           Editar Usuario
         </h2>
 
-        {/* Success/Error Message */}
-        {message.text && (
-          <div className={`p-3 sm:p-4 rounded-lg text-center mb-4 sm:mb-6 mx-2 text-sm sm:text-base ${
-            message.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-          } text-white break-words`}>
-            {message.text}
+        {/* Toast notification - appears in top right corner */}
+        {toast && (
+          <div className={`fixed top-20 right-4 z-50 p-4 rounded-lg shadow-2xl flex items-center gap-3 animate-slide-in max-w-md ${
+            toast.type === 'success' 
+              ? 'bg-green-600 text-white' 
+              : 'bg-red-600 text-white'
+          }`}>
+            {toast.type === 'success' ? (
+              <CheckCircleIcon className="h-6 w-6 flex-shrink-0" />
+            ) : (
+              <XCircleIcon className="h-6 w-6 flex-shrink-0" />
+            )}
+            <span className="text-sm sm:text-base font-medium">{toast.message}</span>
           </div>
         )}
 
@@ -255,6 +269,22 @@ const EditUserPage = () => {
           </div>
         </form>
       </div>
+
+      <style jsx>{`
+        @keyframes slide-in {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-in {
+          animation: slide-in 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 };

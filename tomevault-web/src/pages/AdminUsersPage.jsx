@@ -15,7 +15,9 @@ import {
     EyeIcon, 
     EyeOffIcon, 
     TrashIcon, 
-    LockClosedIcon, 
+    LockClosedIcon,
+    CheckCircleIcon,
+    XCircleIcon
 } from '@heroicons/react/outline';
 
 // Import Pagination component
@@ -44,7 +46,7 @@ const AdminUsersPage = () => {
     const [allUsers, setAllUsers] = useState([]); // All users for local search/filtering
     const [displayUsers, setDisplayUsers] = useState([]); // Users shown in the table
     const [isLoading, setIsLoading] = useState(true);
-    const [message, setMessage] = useState({ type: '', text: '' });
+    const [toast, setToast] = useState(null);
     const [totalPages, setTotalPages] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
     const [scrollRestored, setScrollRestored] = useState(false);
@@ -65,6 +67,12 @@ const AdminUsersPage = () => {
 
     const isSuperAdmin = currentUser?.roles?.includes('SUPER_ADMIN');
 
+    // Show toast notification with auto-dismiss
+    const showToast = (type, message) => {
+        setToast({ type, message });
+        setTimeout(() => setToast(null), 4000);
+    };
+
     // Load users in a paginated way (used for non-search view)
     const loadUsersPaginated = useCallback(async (page = 0) => {
         setIsLoading(true);
@@ -76,7 +84,7 @@ const AdminUsersPage = () => {
         } catch (error) {
             console.error("Error loading users:", error);
             setDisplayUsers([]);
-            setMessage({ type: 'error', text: 'Error al cargar usuarios.' });
+            showToast('error', 'Error al cargar usuarios.');
         } finally {
             setIsLoading(false);
         }
@@ -275,11 +283,9 @@ const AdminUsersPage = () => {
             setAllUsers(updateState);
             setDisplayUsers(updateState);
             
-            setMessage({ type: 'success', text: `Estado de ${user.username} actualizado.` });
-            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+            showToast('success', `Estado de ${user.username} actualizado.`);
         } catch (err) {
-            setMessage({ type: 'error', text: 'Error al actualizar estado.' });
-            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+            showToast('error', 'Error al actualizar estado.');
         }
     };
 
@@ -316,14 +322,12 @@ const AdminUsersPage = () => {
 
         try {
             await AdminUserService.resetUserPassword(resetPasswordModal, newPassword);
-            setMessage({ type: 'success', text: 'Contraseña restablecida.' });
+            showToast('success', 'Contraseña restablecida.');
             setNewPassword('');
             setPasswordError('');
-            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
         } catch (err) {
             const errorText = err.message || 'Error al restablecer contraseña.';
-            setMessage({ type: 'error', text: errorText });
-            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+            showToast('error', errorText);
         }
 
         setResetPasswordModal(null);
@@ -366,11 +370,9 @@ const AdminUsersPage = () => {
                 await loadUsersPaginated(adminCurrentPage);
             }
             
-            setMessage({ type: 'success', text: 'Usuario eliminado permanentemente.' });
-            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+            showToast('success', 'Usuario eliminado permanentemente.');
         } catch (err) {
-            setMessage({ type: 'error', text: 'Error al eliminar usuario.' });
-            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
+            showToast('error', 'Error al eliminar usuario.');
         }
         setDeleteConfirmModal(null);
     };
@@ -404,6 +406,22 @@ const AdminUsersPage = () => {
                 )}
             </h2>
 
+            {/* Toast notification - appears in top right corner */}
+            {toast && (
+                <div className={`fixed top-20 right-4 z-50 p-4 rounded-lg shadow-2xl flex items-center gap-3 animate-slide-in max-w-md ${
+                    toast.type === 'success' 
+                        ? 'bg-green-600 text-white' 
+                        : 'bg-red-600 text-white'
+                }`}>
+                    {toast.type === 'success' ? (
+                        <CheckCircleIcon className="h-6 w-6 flex-shrink-0" />
+                    ) : (
+                        <XCircleIcon className="h-6 w-6 flex-shrink-0" />
+                    )}
+                    <span className="text-sm sm:text-base font-medium">{toast.message}</span>
+                </div>
+            )}
+
             {/* Search Input Area */}
             <div className="mb-4 sm:mb-6 w-full max-w-full">
                 <input
@@ -422,15 +440,6 @@ const AdminUsersPage = () => {
                     </button>
                 )}
             </div>
-
-            {/* Messages */}
-            {message.text && (
-                <div className={`p-3 sm:p-4 rounded-lg text-center mb-3 sm:mb-4 mx-2 text-sm sm:text-base ${
-                    message.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-                } text-white break-words`}>
-                    {message.text}
-                </div>
-            )}
 
             {isLoading && displayUsers.length === 0 ? (
                 <LoadingSpinner />
@@ -565,7 +574,7 @@ const AdminUsersPage = () => {
             {/* Modal: Reset Password */}
             {resetPasswordModal && (
                 <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-3 sm:p-4 z-50">
-                    <div className="bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg shadow-2xl max-w-sm w-full text-center mx-2">
+                    <div className="bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg shadow-2xl max-w-sm w-full text-center mx-2 border border-gray-700">
                         <h3 className="text-lg sm:text-xl font-bold text-white mb-2 break-words">Restablecer Contraseña</h3>
                         <p className="text-gray-300 mb-4 sm:mb-6 text-sm sm:text-base break-words">
                             Ingresa una nueva contraseña para el usuario.
@@ -582,7 +591,7 @@ const AdminUsersPage = () => {
                                     setNewPassword(e.target.value);
                                     setPasswordError('');
                                 }}
-                                className={`w-full p-3 bg-gray-700 text-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                className={`w-full p-2 sm:p-3 bg-gray-700 text-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base ${
                                     passwordError ? 'border-red-500' : 'border-gray-600'
                                 }`}
                                 placeholder="Ingrese nueva contraseña"
@@ -594,13 +603,13 @@ const AdminUsersPage = () => {
                         <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
                             <button
                                 onClick={confirmResetPassword}
-                                className="bg-blue-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-blue-700 transition text-sm sm:text-base order-2 sm:order-1"
+                                className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-blue-700 transition text-sm sm:text-base order-2 sm:order-1"
                             >
                                 Confirmar
                             </button>
                             <button
                                 onClick={() => setResetPasswordModal(null)}
-                                className="bg-gray-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-gray-700 transition text-sm sm:text-base order-1 sm:order-2"
+                                className="bg-gray-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-700 transition text-sm sm:text-base order-1 sm:order-2"
                             >
                                 Cancelar
                             </button>
@@ -612,7 +621,7 @@ const AdminUsersPage = () => {
             {/* Modal: Confirm Hard Delete */}
             {deleteConfirmModal && (
                 <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-3 sm:p-4 z-50">
-                    <div className="bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg shadow-2xl max-w-sm w-full text-center mx-2">
+                    <div className="bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg shadow-2xl max-w-sm w-full text-center mx-2 border border-gray-700">
                         <h3 className="text-lg sm:text-xl font-bold text-red-400 mb-2 break-words">Eliminar Usuario</h3>
                         <p className="text-gray-300 mb-4 sm:mb-6 text-sm sm:text-base break-words">
                             ¿Estás seguro de eliminar **permanentemente** a este usuario? Esta acción no se puede deshacer.
@@ -620,13 +629,13 @@ const AdminUsersPage = () => {
                         <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
                             <button
                                 onClick={confirmHardDelete}
-                                className="bg-red-500 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-red-600 transition text-sm sm:text-base order-2 sm:order-1"
+                                className="bg-red-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-red-600 transition text-sm sm:text-base order-2 sm:order-1"
                             >
                                 Sí, Eliminar
                             </button>
                             <button
                                 onClick={() => setDeleteConfirmModal(null)}
-                                className="bg-gray-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-gray-700 transition text-sm sm:text-base order-1 sm:order-2"
+                                className="bg-gray-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-700 transition text-sm sm:text-base order-1 sm:order-2"
                             >
                                 Cancelar
                             </button>
@@ -634,6 +643,22 @@ const AdminUsersPage = () => {
                     </div>
                 </div>
             )}
+
+            <style jsx>{`
+                @keyframes slide-in {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                .animate-slide-in {
+                    animation: slide-in 0.3s ease-out;
+                }
+            `}</style>
         </div>
     );
 };

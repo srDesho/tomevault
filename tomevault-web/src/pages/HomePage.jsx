@@ -6,6 +6,7 @@ import * as BookService from '../services/BookService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import Pagination from '../components/common/Pagination';
 import { useHomeSearch } from '../context/HomeSearchContext';
+import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/outline';
 
 const HomePage = ({ refreshBooks }) => {
     // Access global state for search and pagination from a custom hook.
@@ -26,7 +27,7 @@ const HomePage = ({ refreshBooks }) => {
     const [allBooks, setAllBooks] = useState([]);
     const [displayBooks, setDisplayBooks] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [notification, setNotification] = useState(null);
+    const [toast, setToast] = useState(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [bookToDelete, setBookToDelete] = useState(null);
     const [totalPages, setTotalPages] = useState(0);
@@ -37,6 +38,12 @@ const HomePage = ({ refreshBooks }) => {
     // Refs to manage component behavior across renders.
     const isInitialLoad = useRef(true);
     const previousSearchTerm = useRef(homeSearchTerm);
+
+    // Show toast notification with auto-dismiss
+    const showToast = (type, message) => {
+        setToast({ type, message });
+        setTimeout(() => setToast(null), 4000);
+    };
 
     // Fetches books with pagination from the service.
     const loadBooksPaginated = useCallback(async (page = 0) => {
@@ -184,10 +191,7 @@ const HomePage = ({ refreshBooks }) => {
     const handleDelete = async (bookId) => {
         try {
             await BookService.deleteBook(bookId);
-            setNotification({
-                type: 'success',
-                message: 'Libro eliminado correctamente'
-            });
+            showToast('success', 'Libro eliminado correctamente');
             
             const updatedBooks = await loadAllBooksForSearch();
             
@@ -217,13 +221,9 @@ const HomePage = ({ refreshBooks }) => {
             }
             
         } catch (error) {
-            setNotification({
-                type: 'error',
-                message: error.message || 'Error al eliminar el libro'
-            });
+            showToast('error', error.message || 'Error al eliminar el libro');
         } finally {
             setShowDeleteModal(false);
-            setTimeout(() => setNotification(null), 3000);
         }
     };
 
@@ -270,6 +270,22 @@ const HomePage = ({ refreshBooks }) => {
                 )}
             </h2>
 
+            {/* Toast notification - appears in top right corner */}
+            {toast && (
+                <div className={`fixed top-20 right-4 z-50 p-4 rounded-lg shadow-2xl flex items-center gap-3 animate-slide-in max-w-md ${
+                    toast.type === 'success' 
+                        ? 'bg-green-600 text-white' 
+                        : 'bg-red-600 text-white'
+                }`}>
+                    {toast.type === 'success' ? (
+                        <CheckCircleIcon className="h-6 w-6 flex-shrink-0" />
+                    ) : (
+                        <XCircleIcon className="h-6 w-6 flex-shrink-0" />
+                    )}
+                    <span className="text-sm sm:text-base font-medium">{toast.message}</span>
+                </div>
+            )}
+
             <div className="mb-4 sm:mb-6 w-full max-w-full">
                 <input
                     type="text"
@@ -287,14 +303,6 @@ const HomePage = ({ refreshBooks }) => {
                     </button>
                 )}
             </div>
-
-            {notification && (
-                <div className={`p-3 sm:p-4 rounded-lg text-center mb-3 sm:mb-4 mx-2 text-sm sm:text-base ${
-                    notification.type === 'success' ? 'bg-green-600' : 'bg-red-600'
-                } text-white break-words`}>
-                    {notification.message}
-                </div>
-            )}
 
             {isLoading ? (
                 <LoadingSpinner />
@@ -379,6 +387,22 @@ const HomePage = ({ refreshBooks }) => {
                     </div>
                 </div>
             )}
+
+            <style jsx>{`
+                @keyframes slide-in {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+                .animate-slide-in {
+                    animation: slide-in 0.3s ease-out;
+                }
+            `}</style>
         </div>
     );
 };

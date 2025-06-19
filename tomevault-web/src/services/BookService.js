@@ -2,7 +2,7 @@ import { getAuthHeader } from './AuthService';
 
 const BACKEND_BASE_URL = 'http://localhost:8080/api/v1';
 
-// A generic function to handle API calls with authentication and retry logic.
+// Generic function to handle API calls with authentication and retry logic
 const fetchWithRetry = async (url, options = {}, retries = 3, delay = 1000) => {
     const authHeader = getAuthHeader();
     const finalHeaders = new Headers(options.headers);
@@ -36,7 +36,7 @@ const fetchWithRetry = async (url, options = {}, retries = 3, delay = 1000) => {
     }
 };
 
-// Fetches a paginated list of the user's books.
+// Fetches a paginated list of the user's books
 export const getMyBooks = async (page = 0, size = 12) => {
     console.log("Calling API: get paginated books");
     try {
@@ -50,7 +50,7 @@ export const getMyBooks = async (page = 0, size = 12) => {
     }
 };
 
-// Fetches all of the user's books by iterating through all pages.
+// Fetches all of the user's books by iterating through all pages
 export const getAllMyBooks = async () => {
     console.log("Calling API: get all books");
     try {
@@ -79,25 +79,45 @@ export const getAllMyBooks = async () => {
     }
 };
 
-// Fetches a single book, first from the user's collection and then from the Google Books API if not found.
-export const getBookById = async (googleBookId) => {
-    console.log(`Calling API: get book with ID: ${googleBookId} from`, BACKEND_BASE_URL);
+// Checks if a book exists in user's collection and returns it
+export const getBookByGoogleId = async (googleBookId) => {
+    console.log(`Calling API: check if book exists in collection by Google ID: ${googleBookId}`);
     try {
-        const userBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/${googleBookId}`);
-        return { ...userBook, fromUserCollection: true };
+        const response = await fetchWithRetry(`${BACKEND_BASE_URL}/books/${googleBookId}`);
+        return { ...response, fromUserCollection: true };
     } catch (error) {
-        console.warn(`Book with Google ID ${googleBookId} not found in user's collection, trying Google API...`, error);
-        try {
-            const googleApiBook = await fetchWithRetry(`${BACKEND_BASE_URL}/books/google-api/${googleBookId}`);
-            return { ...googleApiBook, fromUserCollection: false };
-        } catch (googleApiError) {
-            console.error(`Error getting book with Google ID ${googleBookId} from Google API:`, googleApiError);
-            throw new Error("No se pudo cargar la información del libro desde tu colección ni desde Google Books.");
-        }
+        console.warn(`Book with Google ID ${googleBookId} not found in user's collection`);
+        return null;
     }
 };
 
-// Searches for books using the Google Books API via the backend.
+// Fetches book from Google Books API
+export const getBookFromGoogleApi = async (googleBookId) => {
+    console.log(`Calling API: get book from Google API: ${googleBookId}`);
+    try {
+        const response = await fetchWithRetry(`${BACKEND_BASE_URL}/books/google-api/${googleBookId}`);
+        return { ...response, fromUserCollection: false };
+    } catch (error) {
+        console.error(`Error getting book from Google API:`, error);
+        throw new Error("No se pudo cargar la información del libro desde Google Books.");
+    }
+};
+
+// Main function to get book - first tries user collection, then Google API
+export const getBookById = async (googleBookId) => {
+    console.log(`Calling API: get book with ID: ${googleBookId}`);
+    
+    // First try to get from user's collection
+    const userBook = await getBookByGoogleId(googleBookId);
+    if (userBook) {
+        return userBook;
+    }
+    
+    // If not in collection, get from Google API
+    return await getBookFromGoogleApi(googleBookId);
+};
+
+// Searches for books using the Google Books API via the backend
 export const searchGoogleBooks = async (query) => {
     console.log("Calling API: search books on your Spring Backend with query:", query);
     try {
@@ -110,7 +130,7 @@ export const searchGoogleBooks = async (query) => {
     }
 };
 
-// Reactivates a soft-deleted book.
+// Reactivates a soft-deleted book
 export const activateBook = async (googleBookId, keepProgress = true) => {
     console.log("Reactivating book with ID:", googleBookId, "Keep progress:", keepProgress);
     try {
@@ -128,7 +148,7 @@ export const activateBook = async (googleBookId, keepProgress = true) => {
     }
 };
 
-// Saves a book from the Google Books API to the user's collection.
+// Saves a book from the Google Books API to the user's collection
 export const saveBookFromGoogle = async (googleBookId) => {
     console.log("Calling API: save book from Google Books to your Spring Backend with ID:", googleBookId);
     try {
@@ -142,7 +162,7 @@ export const saveBookFromGoogle = async (googleBookId) => {
     }
 };
 
-// Updates a book's read count.
+// Updates a book's read count
 export const updateReadCount = async (bookId, newReadCount) => {
     console.log(`Calling API: update read count for book ${bookId} to ${newReadCount} on`, BACKEND_BASE_URL);
     try {
@@ -166,7 +186,7 @@ export const updateReadCount = async (bookId, newReadCount) => {
     }
 };
 
-// Increments a book's read count.
+// Increments a book's read count
 export const incrementReadCount = async (bookId) => {
     console.log("Calling API: increment read count for book ID:", bookId);
     try {
@@ -180,7 +200,7 @@ export const incrementReadCount = async (bookId) => {
     }
 };
 
-// Decrements a book's read count.
+// Decrements a book's read count
 export const decrementReadCount = async (bookId) => {
     console.log("Calling API: decrement read count for book ID:", bookId);
     try {
@@ -194,7 +214,7 @@ export const decrementReadCount = async (bookId) => {
     }
 };
 
-// Deletes a book from the user's collection.
+// Deletes a book from the user's collection
 export const deleteBook = async (bookId) => {
     console.log("Calling API: delete book ID:", bookId);
     try {
@@ -208,7 +228,7 @@ export const deleteBook = async (bookId) => {
     }
 };
 
-// Gets the status (e.g., deleted, active, not in collection) of a book.
+// Gets the status of a book
 export const getBookStatus = async (googleBookId) => {
     console.log(`Calling API: check status for book ${googleBookId}`);
     try {
