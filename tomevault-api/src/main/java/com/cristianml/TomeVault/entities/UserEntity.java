@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -41,6 +42,10 @@ public class UserEntity {
     private boolean accountNonLocked;
     @Column(name = "credentials_non_expired")
     private boolean credentialsNonExpired;
+    @Column(name = "deleted", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean deleted;
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.MERGE)
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id") ,

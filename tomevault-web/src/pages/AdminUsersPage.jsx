@@ -7,7 +7,7 @@ import AdminUserService from '../services/AdminUserService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useAdminUsersSearch } from '../context/AdminUsersContext'; // Custom context for state persistence
+import { useAdminUsersSearch } from '../context/AdminUsersContext';
 
 // Icon imports
 import { 
@@ -43,8 +43,8 @@ const AdminUsersPage = () => {
     } = useAdminUsersSearch();
     
     // Core state management
-    const [allUsers, setAllUsers] = useState([]); // All users for local search/filtering
-    const [displayUsers, setDisplayUsers] = useState([]); // Users shown in the table
+    const [allUsers, setAllUsers] = useState([]);
+    const [displayUsers, setDisplayUsers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [toast, setToast] = useState(null);
     const [totalPages, setTotalPages] = useState(0);
@@ -58,6 +58,7 @@ const AdminUsersPage = () => {
     const [newPassword, setNewPassword] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [deleteConfirmModal, setDeleteConfirmModal] = useState(null);
+    const [toggleStatusModal, setToggleStatusModal] = useState(null);
     
     const SEARCH_SIZE = 10;
     
@@ -73,33 +74,16 @@ const AdminUsersPage = () => {
         setTimeout(() => setToast(null), 4000);
     };
 
-    // Load users in a paginated way (used for non-search view)
-    const loadUsersPaginated = useCallback(async (page = 0) => {
-        setIsLoading(true);
+    // Load all users for local filtering and pagination (filters deleted users)
+    const loadAllUsersForDisplay = useCallback(async () => {
         try {
-            const response = await AdminUserService.getAllUsers(page, SEARCH_SIZE, sortBy, sortDir);
-            setDisplayUsers(response.content || []);
-            setTotalPages(response.totalPages);
-            setTotalElements(response.totalElements);
-        } catch (error) {
-            console.error("Error loading users:", error);
-            setDisplayUsers([]);
-            showToast('error', 'Error al cargar usuarios.');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [sortBy, sortDir]);
-
-    // Load all users for local search/filtering capability
-    const loadAllUsersForSearch = useCallback(async () => {
-        try {
-            // Fetch a large enough number of users to cover most admin scenarios for local filtering
-            const allUsersData = await AdminUserService.getAllUsers(0, 1000, sortBy, sortDir); 
+            const allUsersData = await AdminUserService.getAllUsers(0, 1000, sortBy, sortDir);
             const users = allUsersData.content || [];
-            setAllUsers(users);
-            return users;
+            const nonDeletedUsers = users.filter(user => !user.deleted);
+            setAllUsers(nonDeletedUsers);
+            return nonDeletedUsers;
         } catch (error) {
-            console.error("Error loading all users for search:", error);
+            console.error("Error loading all users:", error);
             setAllUsers([]);
             return [];
         }
@@ -108,12 +92,12 @@ const AdminUsersPage = () => {
     // Memoized filtering logic based on allUsers and the search term
     const filteredUsers = useMemo(() => {
         if (!adminSearchTerm.trim() || allUsers.length === 0) {
-            return [];
+            return allUsers;
         }
 
         const lowerCaseSearchTerm = adminSearchTerm.toLowerCase();
 
-        return allUsers.filter(user =>
+        return allUsers.filter(user => 
             user.username?.toLowerCase().includes(lowerCaseSearchTerm) ||
             user.email?.toLowerCase().includes(lowerCaseSearchTerm) ||
             (user.roles && user.roles.some(role => 
@@ -121,8 +105,6 @@ const AdminUsersPage = () => {
             ))
         );
     }, [allUsers, adminSearchTerm]);
-
-    // --- Context Synchronization and Effects (similar to HomePage) ---
 
     // Effect to detect when search is active
     useEffect(() => {
@@ -154,17 +136,15 @@ const AdminUsersPage = () => {
         };
     }, [setAdminScrollPosition]);
 
-    // Initial data loading (combines pagination and search setup)
+    // Initial data loading
     useEffect(() => {
         const loadInitialData = async () => {
             setIsLoading(true);
             setScrollRestored(false);
             
-            // Load all users first to handle potential persistent search state
-            const allUsersData = await loadAllUsersForSearch();
+            const allUsersData = await loadAllUsersForDisplay();
             
             if (isAdminSearchActive && adminSearchTerm) {
-                // Manually filter and paginate the initial search results
                 const currentFilteredUsers = allUsersData.filter(user =>
                     user.username?.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
                     user.email?.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
@@ -181,22 +161,25 @@ const AdminUsersPage = () => {
                 setTotalPages(Math.ceil(currentFilteredUsers.length / SEARCH_SIZE));
                 setTotalElements(currentFilteredUsers.length);
             } else {
-                // Load regular paginated data
-                await loadUsersPaginated(adminCurrentPage);
+                const start = adminCurrentPage * SEARCH_SIZE;
+                const end = start + SEARCH_SIZE;
+                const paginatedResults = allUsersData.slice(start, end);
+                
+                setDisplayUsers(paginatedResults);
+                setTotalPages(Math.ceil(allUsersData.length / SEARCH_SIZE));
+                setTotalElements(allUsersData.length);
             }
             
             isInitialLoad.current = false;
-            // The final setIsLoading(false) is handled inside loadUsersPaginated for the non-search case,
-            // but we need it here for the search case.
-            if (!(isAdminSearchActive && adminSearchTerm)) setIsLoading(false);
+            setIsLoading(false);
         };
         
         loadInitialData();
-    }, []); // Run only once on mount
+    }, []);
 
     // Updates displayed users when filters or pagination states change
     useEffect(() => {
-        if (!isInitialLoad.current) {
+        if (!isInitialLoad.current && allUsers.length > 0) {
             if (isAdminSearchActive && adminSearchTerm) {
                 const start = adminSearchPage * SEARCH_SIZE;
                 const end = start + SEARCH_SIZE;
@@ -204,18 +187,22 @@ const AdminUsersPage = () => {
                 setDisplayUsers(paginatedResults);
                 setTotalPages(Math.ceil(filteredUsers.length / SEARCH_SIZE));
                 setTotalElements(filteredUsers.length);
-                setIsLoading(false); // Stop loading after local filtering/pagination
+                setIsLoading(false);
             } else if (!isAdminSearchActive) {
-                // Only reload paginated data if the view switches back to non-search
-                loadUsersPaginated(adminCurrentPage);
+                const start = adminCurrentPage * SEARCH_SIZE;
+                const end = start + SEARCH_SIZE;
+                const paginatedResults = allUsers.slice(start, end);
+                setDisplayUsers(paginatedResults);
+                setTotalPages(Math.ceil(allUsers.length / SEARCH_SIZE));
+                setTotalElements(allUsers.length);
             }
         }
     }, [
         adminSearchTerm,
         isAdminSearchActive,
         filteredUsers,
+        allUsers,
         adminCurrentPage,
-        loadUsersPaginated,
         adminSearchPage
     ]);
 
@@ -235,18 +222,22 @@ const AdminUsersPage = () => {
         }
     }, [isLoading, displayUsers.length, adminScrollPosition, scrollRestored]);
     
-    // --- Handlers for Page Functionality ---
-
     // Handles changing the page number for both search and non-search views
     const handlePageChange = (newPage) => {
         if (isAdminSearchActive && adminSearchTerm) {
             setAdminSearchPage(newPage);
-            // Filtering and setting displayUsers is handled by the useEffect above
+            const start = newPage * SEARCH_SIZE;
+            const end = start + SEARCH_SIZE;
+            const paginatedResults = filteredUsers.slice(start, end);
+            setDisplayUsers(paginatedResults);
             window.scrollTo(0, 0);
         } else {
             setAdminCurrentPage(newPage);
-            loadUsersPaginated(newPage);
-            setAdminScrollPosition(0);
+            const start = newPage * SEARCH_SIZE;
+            const end = start + SEARCH_SIZE;
+            const paginatedResults = allUsers.slice(start, end);
+            setDisplayUsers(paginatedResults);
+            setHomeScrollPosition(0);
             setScrollRestored(true);
             window.scrollTo(0, 0);
         }
@@ -260,32 +251,36 @@ const AdminUsersPage = () => {
             setSortBy(field);
             setSortDir('asc');
         }
-        // Force reload paginated users or update allUsers for search, which triggers dependent effects
-        if (!isAdminSearchActive) {
-            // If not searching, just reload current page with new sort
-            loadUsersPaginated(adminCurrentPage); 
-        } else {
-            // If searching, reload all users for search with new sort
-            // This will trigger the filtering/pagination logic in the useEffect
-            loadAllUsersForSearch();
-        }
+        
+        loadAllUsersForDisplay();
     };
 
-    // Toggles the 'enabled' status of a user (activate/deactivate)
-    const handleToggleStatus = async (user) => {
+    // Opens the toggle status confirmation modal
+    const handleToggleStatusClick = (user) => {
+        setToggleStatusModal(user);
+    };
+
+    // Toggles the 'enabled' status of a user (activate/deactivate) after confirmation
+    const confirmToggleStatus = async () => {
+        if (!toggleStatusModal) return;
+
+        const user = toggleStatusModal;
+        const newEnabledStatus = !user.enabled;
+        
         try {
-            await AdminUserService.toggleUserStatus(user.id, !user.enabled);
+            await AdminUserService.toggleUserStatus(user.id, newEnabledStatus);
             
-            // Update the user's status in local state (both allUsers and displayUsers)
             const updateState = (prev) => 
-                prev.map(u => u.id === user.id ? { ...u, enabled: !user.enabled } : u);
+                prev.map(u => u.id === user.id ? { ...u, enabled: newEnabledStatus } : u);
 
             setAllUsers(updateState);
             setDisplayUsers(updateState);
             
-            showToast('success', `Estado de ${user.username} actualizado.`);
+            showToast('success', `Usuario ${newEnabledStatus ? 'activado' : 'desactivado'} correctamente.`);
         } catch (err) {
-            showToast('error', 'Error al actualizar estado.');
+            showToast('error', 'Error al actualizar estado del usuario.');
+        } finally {
+            setToggleStatusModal(null);
         }
     };
 
@@ -333,16 +328,13 @@ const AdminUsersPage = () => {
         setResetPasswordModal(null);
     };
 
-    // Permanently deletes a user (only for SUPER_ADMIN)
-    const confirmHardDelete = async () => {
+    // Soft deletes a user and reloads data to maintain proper pagination
+    const handleSoftDelete = async (userId) => {
         try {
-            await AdminUserService.deleteUser(deleteConfirmModal);
+            await AdminUserService.deleteUser(userId);
             
-            // Update allUsers in local state
-            const updatedAllUsers = allUsers.filter(u => u.id !== deleteConfirmModal);
-            setAllUsers(updatedAllUsers);
+            const updatedAllUsers = await loadAllUsersForDisplay();
             
-            // Recalculate pagination for search results (similar to HomePage book deletion)
             if (isAdminSearchActive && adminSearchTerm) {
                 const newFiltered = updatedAllUsers.filter(user =>
                     user.username?.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
@@ -351,9 +343,9 @@ const AdminUsersPage = () => {
                         role.toLowerCase().includes(adminSearchTerm.toLowerCase())
                     ))
                 );
+                
                 const totalFiltered = newFiltered.length;
                 const newTotalPages = Math.ceil(totalFiltered / SEARCH_SIZE);
-                // Adjust current page if the last item on the current page was deleted
                 const safePage = Math.min(adminSearchPage, Math.max(0, newTotalPages - 1));
                 
                 if (safePage !== adminSearchPage) {
@@ -366,18 +358,29 @@ const AdminUsersPage = () => {
                 setTotalPages(newTotalPages);
                 setTotalElements(totalFiltered);
             } else {
-                // If not in search, simply reload the current page
-                await loadUsersPaginated(adminCurrentPage);
+                const totalUsers = updatedAllUsers.length;
+                const newTotalPages = Math.ceil(totalUsers / SEARCH_SIZE);
+                const safePage = Math.min(adminCurrentPage, Math.max(0, newTotalPages - 1));
+                
+                if (safePage !== adminCurrentPage) {
+                    setAdminCurrentPage(safePage);
+                }
+                
+                const start = safePage * SEARCH_SIZE;
+                const end = start + SEARCH_SIZE;
+                setDisplayUsers(updatedAllUsers.slice(start, end));
+                setTotalPages(newTotalPages);
+                setTotalElements(totalUsers);
             }
             
-            showToast('success', 'Usuario eliminado permanentemente.');
+            showToast('success', 'Usuario eliminado correctamente.');
         } catch (err) {
             showToast('error', 'Error al eliminar usuario.');
         }
         setDeleteConfirmModal(null);
     };
 
-    // Generates the user count text for the header (similar to HomePage)
+    // Generates the user count text for the header
     const getUserCountText = () => {
         if (isAdminSearchActive && adminSearchTerm) {
             const total = filteredUsers.length;
@@ -385,7 +388,9 @@ const AdminUsersPage = () => {
             const end = Math.min((adminSearchPage + 1) * SEARCH_SIZE, total);
             return `${start}-${end} de ${total} usuarios encontrados`;
         }
-        return `${totalElements} usuario${totalElements !== 1 ? 's' : ''} en total`;
+        const start = adminCurrentPage * SEARCH_SIZE + 1;
+        const end = Math.min((adminCurrentPage + 1) * SEARCH_SIZE, totalElements);
+        return `${start}-${end} de ${totalElements} usuarios en total`;
     };
 
     if (isLoading && displayUsers.length === 0) {
@@ -406,7 +411,7 @@ const AdminUsersPage = () => {
                 )}
             </h2>
 
-            {/* Toast notification - appears in top right corner */}
+            {/* Toast notification */}
             {toast && (
                 <div className={`fixed top-20 right-4 z-50 p-4 rounded-lg shadow-2xl flex items-center gap-3 animate-slide-in max-w-md ${
                     toast.type === 'success' 
@@ -508,7 +513,7 @@ const AdminUsersPage = () => {
                                                 <LockClosedIcon className="h-4 w-4" />
                                             </button>
                                             <button
-                                                onClick={() => handleToggleStatus(user)}
+                                                onClick={() => handleToggleStatusClick(user)}
                                                 className={`p-1 rounded transition ${
                                                     user.enabled ? 'text-red-400 hover:text-red-300' : 'text-green-400 hover:text-green-300'
                                                 }`}
@@ -521,7 +526,7 @@ const AdminUsersPage = () => {
                                                 <button
                                                     onClick={() => setDeleteConfirmModal(user.id)}
                                                     className="text-red-400 hover:text-red-300 p-1 rounded transition"
-                                                    title="Eliminar permanentemente"
+                                                    title="Eliminar usuario"
                                                 >
                                                     <TrashIcon className="h-4 w-4" />
                                                 </button>
@@ -546,7 +551,6 @@ const AdminUsersPage = () => {
                     )}
                 </>
             ) : adminSearchTerm ? (
-                // No search results
                 <div className="py-8 sm:py-12 text-center px-2">
                     <div className="bg-gray-800 p-4 sm:p-6 rounded-lg inline-block max-w-full">
                         <p className="text-gray-400 mb-3 sm:mb-4 text-sm sm:text-base break-words">
@@ -561,7 +565,6 @@ const AdminUsersPage = () => {
                     </div>
                 </div>
             ) : (
-                // No users at all
                 <div className="py-8 sm:py-12 text-center px-2">
                     <div className="bg-gray-800 p-4 sm:p-6 rounded-lg inline-block max-w-full">
                         <p className="text-gray-400 mb-3 sm:mb-4 text-sm sm:text-base">
@@ -618,17 +621,55 @@ const AdminUsersPage = () => {
                 </div>
             )}
 
-            {/* Modal: Confirm Hard Delete */}
+            {/* Modal: Confirm Toggle Status */}
+            {toggleStatusModal && (
+                <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-3 sm:p-4 z-50">
+                    <div className="bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg shadow-2xl max-w-sm w-full text-center mx-2 border border-gray-700">
+                        <h3 className="text-lg sm:text-xl font-bold text-yellow-400 mb-2 break-words">
+                            {toggleStatusModal.enabled ? 'Desactivar Usuario' : 'Activar Usuario'}
+                        </h3>
+                        <p className="text-gray-300 mb-4 sm:mb-6 text-sm sm:text-base break-words">
+                            ¿Estás seguro de {toggleStatusModal.enabled ? 'desactivar' : 'activar'} al usuario 
+                            <strong> "{toggleStatusModal.username}"</strong>?
+                            {toggleStatusModal.enabled 
+                                ? ' El usuario no podrá acceder al sistema hasta que sea reactivado.' 
+                                : ' El usuario podrá acceder al sistema nuevamente.'
+                            }
+                        </p>
+                        <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
+                            <button
+                                onClick={confirmToggleStatus}
+                                className={`${
+                                    toggleStatusModal.enabled 
+                                        ? 'bg-yellow-500 hover:bg-yellow-600' 
+                                        : 'bg-green-500 hover:bg-green-600'
+                                } text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition text-sm sm:text-base order-2 sm:order-1`}
+                            >
+                                Sí, {toggleStatusModal.enabled ? 'Desactivar' : 'Activar'}
+                            </button>
+                            <button
+                                onClick={() => setToggleStatusModal(null)}
+                                className="bg-gray-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-700 transition text-sm sm:text-base order-1 sm:order-2"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal: Confirm Soft Delete */}
             {deleteConfirmModal && (
                 <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-3 sm:p-4 z-50">
                     <div className="bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg shadow-2xl max-w-sm w-full text-center mx-2 border border-gray-700">
                         <h3 className="text-lg sm:text-xl font-bold text-red-400 mb-2 break-words">Eliminar Usuario</h3>
                         <p className="text-gray-300 mb-4 sm:mb-6 text-sm sm:text-base break-words">
-                            ¿Estás seguro de eliminar **permanentemente** a este usuario? Esta acción no se puede deshacer.
+                            ¿Estás seguro de eliminar a este usuario? 
+                            El usuario será desactivado y no aparecerá en las listas normales.
                         </p>
                         <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
                             <button
-                                onClick={confirmHardDelete}
+                                onClick={() => handleSoftDelete(deleteConfirmModal)}
                                 className="bg-red-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-red-600 transition text-sm sm:text-base order-2 sm:order-1"
                             >
                                 Sí, Eliminar

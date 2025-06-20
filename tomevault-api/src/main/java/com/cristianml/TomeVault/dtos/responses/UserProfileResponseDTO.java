@@ -3,6 +3,7 @@ package com.cristianml.TomeVault.dtos.responses;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Getter
@@ -20,4 +21,6 @@ public class UserProfileResponseDTO {
     private LocalDate birthDate;
     private Set<String> roles;
     private boolean enabled;
+    private boolean deleted;
+    private LocalDateTime deletedAt;
 }

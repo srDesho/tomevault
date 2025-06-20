@@ -70,7 +70,7 @@ public class AdminUserController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Object> deleteUser(@PathVariable Long id) {
         try {
-            this.adminUserService.deleteUserById(id);
+            this.adminUserService.softDeleteUserById(id);
             return Utilities.generateResponse(HttpStatus.OK, "User deleted successfully.");
         } catch (ResourceNotFoundException e) {
             return Utilities.generateResponse(HttpStatus.NOT_FOUND, e.getMessage());

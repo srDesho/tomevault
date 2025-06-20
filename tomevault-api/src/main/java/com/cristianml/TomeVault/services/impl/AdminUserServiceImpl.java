@@ -21,6 +21,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -114,9 +115,13 @@ public class AdminUserServiceImpl implements IAdminUserService {
 
     @Override
     @Transactional
-    public void deleteUserById(Long id) {
+    public void softDeleteUserById(Long id) {
         UserEntity userToDelete = this.userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
+
+        // Soft delete
+        userToDelete.setDeleted(true);
+        userToDelete.setDeletedAt(LocalDateTime.now());
         userToDelete.setEnabled(false);
         userToDelete.setAccountNonLocked(false);
         this.userRepository.save(userToDelete);
@@ -168,6 +173,11 @@ public class AdminUserServiceImpl implements IAdminUserService {
     public UserProfileResponseDTO toggleUserStatus(Long userId, boolean enabled) {
         UserEntity userToUpdate = this.userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        // verify tha is not deleted
+        if (userToUpdate.isDeleted()) {
+            throw new IllegalArgumentException("Cannot toggle status of a deleted user.");
+        }
 
         userToUpdate.setEnabled(enabled);
         if (!enabled) {

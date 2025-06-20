@@ -20,7 +20,7 @@ public interface IAdminUserService {
 
     UserProfileResponseDTO updateUser(Long id, UserProfileUpdateRequestDTO userUpdateRequestDTO);
 
-    void deleteUserById(Long id);
+    void softDeleteUserById(Long id);
 
     void hardDeleteUserById(Long id);
 
