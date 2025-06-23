@@ -22,11 +22,12 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private final JwtUtils jwtUtils;
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+    public UserDetails loadUserByUsername(String usernameOrEmail) throws UsernameNotFoundException {
 
         // We capture the user
-        UserEntity userEntity = userRepository.findUserEntityByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User with username " + username + " not exists."));
+        UserEntity userEntity = userRepository.findUserEntityByUsername(usernameOrEmail)
+                .or(() -> userRepository.findUserEntityByEmail(usernameOrEmail))
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with username or email" + usernameOrEmail));
 
        /* List<SimpleGrantedAuthority> authorityList = new ArrayList<>();
 
@@ -47,6 +48,15 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 userEntity.isCredentialsNonExpired(),
                 userEntity.isAccountNonLocked(),
                 authorityList);*/
+
+        // Check if user is deleted (soft delete).
+        if (userEntity.isDeleted()) {
+            throw new UsernameNotFoundException("User account has been deleted.");
+        }
+        // Check if user is enabled.
+        if (!userEntity.isEnabled()) {
+            throw new UsernameNotFoundException("User account is disabled.");
+        }
 
         // Simply return a new instance of CustomUserDetails because we configure the authorities in this Custom class
         return new CustomUserDetails(userEntity);

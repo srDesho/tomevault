@@ -62,6 +62,7 @@ public class JwtTokenValidator extends OncePerRequestFilter {
 
             // 6. Load the UserEntity directly from repository
             UserEntity userEntity = userRepository.findUserEntityByUsername(username)
+                    .or(() -> userRepository.findUserEntityByEmail(username))
                     .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
             // 7. Create CustomUserDetails with the UserEntity

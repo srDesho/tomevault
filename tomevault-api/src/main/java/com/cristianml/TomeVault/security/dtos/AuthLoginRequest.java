@@ -14,9 +14,9 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 public class AuthLoginRequest {
 
-    @NotBlank
-    private String username;
-    @NotBlank
+    @NotBlank(message = "Username or email is required")
+    private String usernameOrEmail;
+    @NotBlank(message = "Password is required")
     private String password;
 
 

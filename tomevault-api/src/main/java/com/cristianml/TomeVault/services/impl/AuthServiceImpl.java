@@ -44,7 +44,7 @@ public class AuthServiceImpl implements IAuthService {
     // Validates username/password combination and sets security context.
     @Override
     public AuthResponse loginUser(AuthLoginRequest authLoginRequest) {
-        String username = authLoginRequest.getUsername();
+        String username = authLoginRequest.getUsernameOrEmail();
         String password = authLoginRequest.getPassword();
 
         // Authenticate user credentials using Spring Security's UserDetailsService

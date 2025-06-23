@@ -67,7 +67,7 @@ public class CustomUserDetails implements UserDetails {
      */
     @Override
     public boolean isAccountNonExpired() {
-        return UserDetails.super.isAccountNonExpired();
+        return userEntity.isAccountNonExpired();
     }
 
     /**
@@ -75,7 +75,7 @@ public class CustomUserDetails implements UserDetails {
      */
     @Override
     public boolean isAccountNonLocked() {
-        return UserDetails.super.isAccountNonLocked();
+        return userEntity.isAccountNonLocked();
     }
 
     /**
@@ -83,7 +83,7 @@ public class CustomUserDetails implements UserDetails {
      */
     @Override
     public boolean isCredentialsNonExpired() {
-        return UserDetails.super.isCredentialsNonExpired();
+        return userEntity.isCredentialsNonExpired();
     }
 
     /**
@@ -91,6 +91,6 @@ public class CustomUserDetails implements UserDetails {
      */
     @Override
     public boolean isEnabled() {
-        return UserDetails.super.isEnabled();
+        return userEntity.isEnabled() && !userEntity.isDeleted();
     }
 }

@@ -6,13 +6,13 @@ export const TOKEN_KEY = 'jwtToken';
 
 /**
  * Attempts to log in with the provided username and password.
- * @param {string} username - The user's username.
+ * @param {string} usernameOrEmail - The user's username.
  * @param {string} password - The user's password.
  * @returns {Promise<boolean>} True if login is successful, false otherwise.
  * @throws {Error} If login fails due to invalid credentials or network issues.
  */
-export const login = async (username, password) => {
-  console.log(`[AuthService] Attempting to log in with user: ${username}`);
+export const login = async (usernameOrEmail, password) => {
+  console.log(`[AuthService] Attempting to log in with user: ${usernameOrEmail}`);
   console.log(`[AuthService] Login URL: ${BACKEND_BASE_URL}/auth/login`);
 
   try {
@@ -21,7 +21,7 @@ export const login = async (username, password) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ usernameOrEmail, password }),
     });
 
     console.log(`[AuthService] Login response status: ${response.status}`);
@@ -44,7 +44,7 @@ export const login = async (username, password) => {
           console.log('[AuthService] User profile stored:', userProfile);
         } else {
           // Fallback: create minimal profile
-          const fallbackProfile = { username, roles: ['USER'] };
+          const fallbackProfile = { usernameOrEmail, roles: ['USER'] };
           localStorage.setItem('userProfile', JSON.stringify(fallbackProfile));
           console.log('[AuthService] Used fallback profile due to profile fetch failure.');
         }
