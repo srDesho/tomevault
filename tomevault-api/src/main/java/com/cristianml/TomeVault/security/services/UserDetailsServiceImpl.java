@@ -1,6 +1,8 @@
 package com.cristianml.TomeVault.security.services;
 
 import com.cristianml.TomeVault.entities.UserEntity;
+import com.cristianml.TomeVault.exceptions.AccountDeletedException;
+import com.cristianml.TomeVault.exceptions.AccountDisabledException;
 import com.cristianml.TomeVault.repositories.RoleRepository;
 import com.cristianml.TomeVault.repositories.UserRepository;
 import com.cristianml.TomeVault.security.config.CustomUserDetails;
@@ -51,11 +53,11 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
         // Check if user is deleted (soft delete).
         if (userEntity.isDeleted()) {
-            throw new UsernameNotFoundException("User account has been deleted.");
+            throw new AccountDeletedException("User account has been deleted.");
         }
         // Check if user is enabled.
         if (!userEntity.isEnabled()) {
-            throw new UsernameNotFoundException("User account is disabled.");
+            throw new AccountDisabledException("User account is disabled.");
         }
 
         // Simply return a new instance of CustomUserDetails because we configure the authorities in this Custom class
