@@ -44,6 +44,8 @@ const UserSettingsPage = () => {
     const [toast, setToast] = useState(null);
     const [isAuth, setIsAuth] = useState(isAuthenticated());
     const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [showProfileConfirm, setShowProfileConfirm] = useState(false);
+    const [pendingProfileData, setPendingProfileData] = useState(null);
 
     // Debug log to confirm context state is preserved
     useEffect(() => {
@@ -124,11 +126,20 @@ const UserSettingsPage = () => {
             return;
         }
 
+        // Mostrar confirmación en lugar de enviar directamente
+        setPendingProfileData(profileFormData);
+        setShowProfileConfirm(true);
+    };
+
+    // Confirm profile update
+    const confirmProfileUpdate = async () => {
         try {
             setLoading(true);
-            const response = await updateUserProfile(profileFormData);
+            const response = await updateUserProfile(pendingProfileData);
             showToast('success', response.message || 'Perfil actualizado correctamente');
-            setUserProfile((prev) => ({ ...prev, ...profileFormData }));
+            setUserProfile((prev) => ({ ...prev, ...pendingProfileData }));
+            setShowProfileConfirm(false);
+            setPendingProfileData(null);
         } catch (err) {
             showToast('error', err.message || 'Error al actualizar el perfil');
         } finally {
@@ -355,7 +366,7 @@ const UserSettingsPage = () => {
                                     disabled={loading} 
                                     className="bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                                 >
-                                    {loading ? 'Guardando...' : 'Actualizar Perfil'}
+                                    {loading ? 'Guardando...' : 'Guardar Cambios'}
                                 </button>
                             </div>
                         </form>
@@ -382,6 +393,38 @@ const UserSettingsPage = () => {
                         </div>
                     </section>
                 </div>
+
+                {/* Profile confirmation modal */}
+                {showProfileConfirm && (
+                    <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-3 sm:p-4 z-50">
+                        <div className="bg-gray-800 p-4 sm:p-6 rounded-lg shadow-2xl border border-gray-700 max-w-md w-full mx-2">
+                            <div className="flex items-center gap-3 mb-4">
+                                <UserIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-400" />
+                                <h3 className="text-lg sm:text-xl font-bold text-white">Confirmar Cambios</h3>
+                            </div>
+                            
+                            <p className="text-gray-300 text-sm sm:text-base mb-4">
+                                ¿Estás seguro de que quieres actualizar tu información de perfil?
+                            </p>
+                            
+                            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-2 sm:pt-4">
+                                <button 
+                                    onClick={() => setShowProfileConfirm(false)}
+                                    className="flex-1 py-2 sm:py-3 px-4 text-sm sm:text-base rounded-lg font-medium text-gray-300 bg-gray-700 hover:bg-gray-600 transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    onClick={confirmProfileUpdate}
+                                    disabled={loading} 
+                                    className="flex-1 py-2 sm:py-3 px-4 text-sm sm:text-base rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                                >
+                                    {loading ? 'Guardando...' : 'Sí, Actualizar'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Password change modal */}
                 {showPasswordModal && (

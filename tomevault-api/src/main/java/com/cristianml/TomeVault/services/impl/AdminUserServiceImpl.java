@@ -5,6 +5,7 @@ import com.cristianml.TomeVault.dtos.requests.UserCreateRequestDTO;
 import com.cristianml.TomeVault.dtos.requests.UserProfileUpdateRequestDTO;
 import com.cristianml.TomeVault.dtos.responses.UserProfileResponseDTO;
 import com.cristianml.TomeVault.entities.UserEntity;
+import com.cristianml.TomeVault.exceptions.AccessDeniedException;
 import com.cristianml.TomeVault.exceptions.ResourceNotFoundException;
 import com.cristianml.TomeVault.mappers.UserMapper;
 import com.cristianml.TomeVault.repositories.RoleRepository;
@@ -17,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -89,8 +92,12 @@ public class AdminUserServiceImpl implements IAdminUserService {
     @Transactional
     public UserProfileResponseDTO updateUser(Long id, UserProfileUpdateRequestDTO userUpdateRequestDTO) {
 
+        UserEntity currentUser = this.getCurrentAuthenticatedUser();
         UserEntity existingUser = this.userRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("User not found with ID: " + id));
+
+        // Validate permission before updating
+        validatedAdminPermission(currentUser, existingUser);
 
         if (userUpdateRequestDTO.getEmail() != null &&
                 !userUpdateRequestDTO.getEmail().equals(existingUser.getEmail())) {
@@ -116,8 +123,13 @@ public class AdminUserServiceImpl implements IAdminUserService {
     @Override
     @Transactional
     public void softDeleteUserById(Long id) {
+
+        UserEntity currentUser = this.getCurrentAuthenticatedUser();
         UserEntity userToDelete = this.userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
+
+        // Validate permission before deleting
+        validatedAdminPermission(currentUser, userToDelete);
 
         // Soft delete
         userToDelete.setDeleted(true);
@@ -131,9 +143,14 @@ public class AdminUserServiceImpl implements IAdminUserService {
     @Override
     @Transactional
     public void hardDeleteUserById(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new ResourceNotFoundException("User not found with ID: " + id);
-        }
+
+        UserEntity currentUser = this.getCurrentAuthenticatedUser();
+        UserEntity targetUser = this.userRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("User not found with ID: " + id));
+
+        // Validate permission before hard deleting
+        validatedAdminPermission(currentUser, targetUser);
+
         userRepository.deleteById(id);
     }
 
@@ -142,9 +159,16 @@ public class AdminUserServiceImpl implements IAdminUserService {
     @Override
     @Transactional
     public UserProfileResponseDTO updateUserRoles(Long userId, List<String> newRoleNames) {
+
+        UserEntity currentUser = this.getCurrentAuthenticatedUser();
         UserEntity user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        // Validate permission before updating roles
+        validatedAdminPermission(currentUser, user);
+
         logger.debug("User found:", user.getUsername());
+
         Set<RoleEntity> newRoles = this.roleRepository.findRoleEntitiesByRoleEnumIn(newRoleNames)
                 .stream().collect(Collectors.toSet());
         if (newRoles.isEmpty()) {
@@ -158,8 +182,12 @@ public class AdminUserServiceImpl implements IAdminUserService {
 
     @Override
     public UserProfileResponseDTO resetUserPassword(Long userId, String newRawPassword) {
+
+        UserEntity currentUser = this.getCurrentAuthenticatedUser();
         UserEntity userToUpdate = this.userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        validatedAdminPermission(currentUser, userToUpdate);
 
         validatePassword(newRawPassword);
         userToUpdate.setPassword(this.passwordEncoder.encode(newRawPassword));
@@ -171,8 +199,13 @@ public class AdminUserServiceImpl implements IAdminUserService {
 
     @Override
     public UserProfileResponseDTO toggleUserStatus(Long userId, boolean enabled) {
+
+        UserEntity currentUser = this.getCurrentAuthenticatedUser();
         UserEntity userToUpdate = this.userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        // Validate permission before toggling status
+        validatedAdminPermission(currentUser, userToUpdate);
 
         // verify tha is not deleted
         if (userToUpdate.isDeleted()) {
@@ -197,4 +230,40 @@ public class AdminUserServiceImpl implements IAdminUserService {
         return users.map(userMapper::toProfileResponse);
     }
 
+    // Validates if the current admin has permission to modify the target user.
+    // SUPER_ADMIN can modify anyone.
+    // ADMIN can only modify users with USER role.
+    private void validatedAdminPermission(UserEntity currentUser, UserEntity targetUser) {
+        // SUPER_ADMIN can do anything.
+        boolean isSuperAdmin = currentUser.getRoleList().stream()
+                .anyMatch(role -> role.getRoleEnum() == RoleEnum.SUPER_ADMIN);
+
+        if (isSuperAdmin) return; // SUPER_ADMIN has full access
+
+        // Check if current user is ADMIN
+        boolean isAdmin = currentUser.getRoleList().stream()
+                .anyMatch(role -> role.getRoleEnum() == RoleEnum.ADMIN);
+
+        if (!isAdmin) {
+            throw new AccessDeniedException("User does not have admin privileges");
+        }
+
+        // ADMIN cannot modify other ADMIN or SUPER_ADMIN users
+        boolean targetIsAdminOrSuperAdmin = targetUser.getRoleList().stream()
+                .anyMatch(role -> role.getRoleEnum() == RoleEnum.SUPER_ADMIN ||
+                        role.getRoleEnum() == RoleEnum.ADMIN);
+
+        if (targetIsAdminOrSuperAdmin) {
+            throw new AccessDeniedException("ADMIN users cannot modify other ADMIN or SUPER_ADMIN users");
+        }
+    }
+
+    // Gets the current authenticated user from Spring Security context
+    private UserEntity getCurrentAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        return this.userRepository.findUserEntityByUsername(username).orElseThrow(
+                () -> new ResourceNotFoundException("Current user not found"));
+
+    }
 }

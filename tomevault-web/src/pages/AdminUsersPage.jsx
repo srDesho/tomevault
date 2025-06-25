@@ -17,7 +17,8 @@ import {
     TrashIcon, 
     LockClosedIcon,
     CheckCircleIcon,
-    XCircleIcon
+    XCircleIcon,
+    ShieldExclamationIcon
 } from '@heroicons/react/outline';
 
 // Import Pagination component
@@ -66,7 +67,44 @@ const AdminUsersPage = () => {
     const isInitialLoad = useRef(true);
     const previousSearchTerm = useRef(adminSearchTerm);
 
+    // Permission management logic
     const isSuperAdmin = currentUser?.roles?.includes('SUPER_ADMIN');
+    const isAdmin = currentUser?.roles?.includes('ADMIN');
+
+    /**
+     * Determines if the current user has permission to modify the target user
+     * SUPER_ADMIN can modify any user
+     * ADMIN can only modify users with USER role
+     */
+    const canModifyUser = (targetUser) => {
+        // SUPER_ADMIN has full access to all users
+        if (isSuperAdmin) {
+            return true;
+        }
+
+        // Non-admin users cannot modify any users
+        if (!isAdmin) {
+            return false;
+        }
+
+        // ADMIN cannot modify other ADMIN or SUPER_ADMIN users
+        const targetRoles = targetUser.roles || [];
+        const isTargetAdminOrSuperAdmin = targetRoles.some(role => 
+            role === 'ADMIN' || role === 'SUPER_ADMIN'
+        );
+
+        return !isTargetAdminOrSuperAdmin;
+    };
+
+    /**
+     * Generates tooltip message explaining why a user cannot be modified
+     */
+    const getDisabledTooltip = (targetUser) => {
+        if (!canModifyUser(targetUser)) {
+            return "Los ADMIN no pueden modificar otros ADMIN o SUPER_ADMIN";
+        }
+        return "";
+    };
 
     // Show toast notification with auto-dismiss
     const showToast = (type, message) => {
@@ -255,9 +293,42 @@ const AdminUsersPage = () => {
         loadAllUsersForDisplay();
     };
 
-    // Opens the toggle status confirmation modal
+    // Navigation handler for user editing with permission check
+    const handleEditUser = (user) => {
+        if (!canModifyUser(user)) {
+            showToast('error', 'No tienes permisos para editar este usuario.');
+            return;
+        }
+        navigate(`/admin/users/${user.id}/edit`);
+    };
+
+    // Opens the reset password modal with permission check
+    const handleResetPassword = (user) => {
+        if (!canModifyUser(user)) {
+            showToast('error', 'No tienes permisos para restablecer la contraseña de este usuario.');
+            return;
+        }
+        setResetPasswordModal(user.id);
+        setNewPassword('');
+        setPasswordError('');
+    };
+
+    // Opens the toggle status confirmation modal with permission check
     const handleToggleStatusClick = (user) => {
+        if (!canModifyUser(user)) {
+            showToast('error', 'No tienes permisos para cambiar el estado de este usuario.');
+            return;
+        }
         setToggleStatusModal(user);
+    };
+
+    // Handles delete click with permission check
+    const handleDeleteClick = (user) => {
+        if (!canModifyUser(user)) {
+            showToast('error', 'No tienes permisos para eliminar este usuario.');
+            return;
+        }
+        setDeleteConfirmModal(user.id);
     };
 
     // Toggles the 'enabled' status of a user (activate/deactivate) after confirmation
@@ -282,18 +353,6 @@ const AdminUsersPage = () => {
         } finally {
             setToggleStatusModal(null);
         }
-    };
-
-    // Navigation handler for user editing
-    const handleEditUser = (id) => {
-        navigate(`/admin/users/${id}/edit`);
-    };
-
-    // Opens the reset password modal
-    const handleResetPassword = (id) => {
-        setResetPasswordModal(id);
-        setNewPassword('');
-        setPasswordError('');
     };
 
     // Validation logic for the new password
@@ -479,61 +538,117 @@ const AdminUsersPage = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {displayUsers.map((user) => (
-                                    <tr
-                                        key={user.id}
-                                        className="border-t border-gray-700 hover:bg-gray-750 transition-colors"
-                                    >
-                                        <td className="p-3">{user.id}</td>
-                                        <td className="p-3">{user.username}</td>
-                                        <td className="p-3">{user.email}</td>
-                                        <td className="p-3">{user.roles?.join(', ') || 'USER'}</td>
-                                        <td className="p-3">
-                                            <span
-                                                className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                                    user.enabled ? 'bg-green-600' : 'bg-red-600'
-                                                }`}
-                                            >
-                                                {user.enabled ? 'Activo' : 'Inactivo'}
-                                            </span>
-                                        </td>
-                                        <td className="p-3 space-x-1 flex items-center">
-                                            <button
-                                                onClick={() => handleEditUser(user.id)}
-                                                className="text-blue-400 hover:text-blue-300 p-1 rounded transition"
-                                                title="Editar"
-                                            >
-                                                <EditIcon className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleResetPassword(user.id)}
-                                                className="text-yellow-400 hover:text-yellow-300 p-1 rounded transition"
-                                                title="Restablecer contraseña"
-                                            >
-                                                <LockClosedIcon className="h-4 w-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleToggleStatusClick(user)}
-                                                className={`p-1 rounded transition ${
-                                                    user.enabled ? 'text-red-400 hover:text-red-300' : 'text-green-400 hover:text-green-300'
-                                                }`}
-                                                title={user.enabled ? 'Desactivar' : 'Activar'}
-                                            >
-                                                {user.enabled ? <EyeIcon className="h-4 w-4" /> : <EyeOffIcon className="h-4 w-4" />}
-                                            </button>
-
-                                            {isSuperAdmin && (
-                                                <button
-                                                    onClick={() => setDeleteConfirmModal(user.id)}
-                                                    className="text-red-400 hover:text-red-300 p-1 rounded transition"
-                                                    title="Eliminar usuario"
+                                {displayUsers.map((user) => {
+                                    const canModify = canModifyUser(user);
+                                    const disabledTooltip = getDisabledTooltip(user);
+                                    
+                                    return (
+                                        <tr
+                                            key={user.id}
+                                            className={`border-t border-gray-700 hover:bg-gray-750 transition-colors ${
+                                                !canModify ? 'opacity-60' : ''
+                                            }`}
+                                        >
+                                            <td className="p-3">{user.id}</td>
+                                            <td className="p-3">
+  <div className="flex items-center gap-2">
+    {user.username}
+    {!canModify && (
+      <LockClosedIcon 
+        className="h-4 w-4 text-yellow-400" 
+        title={disabledTooltip}
+      />
+    )}
+  </div>
+</td>
+                                            <td className="p-3">{user.email}</td>
+                                            <td className="p-3">
+                                                <div className="flex flex-wrap gap-1">
+                                                    {user.roles?.map((role, idx) => (
+                                                        <span
+                                                            key={idx}
+                                                            className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                                                role === 'SUPER_ADMIN' ? 'bg-red-600 text-white' :
+                                                                role === 'ADMIN' ? 'bg-orange-600 text-white' :
+                                                                'bg-blue-600 text-white'
+                                                            }`}
+                                                        >
+                                                            {role}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </td>
+                                            <td className="p-3">
+                                                <span
+                                                    className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                                        user.enabled ? 'bg-green-600' : 'bg-red-600'
+                                                    }`}
                                                 >
-                                                    <TrashIcon className="h-4 w-4" />
+                                                    {user.enabled ? 'Activo' : 'Inactivo'}
+                                                </span>
+                                            </td>
+                                            <td className="p-3 space-x-1 flex items-center">
+                                                <button
+                                                    onClick={() => handleEditUser(user)}
+                                                    disabled={!canModify}
+                                                    className={`p-1 rounded transition ${
+                                                        canModify
+                                                            ? 'text-blue-400 hover:text-blue-300 cursor-pointer'
+                                                            : 'text-gray-600 cursor-not-allowed'
+                                                    }`}
+                                                    title={canModify ? 'Editar' : disabledTooltip}
+                                                >
+                                                    <EditIcon className="h-4 w-4" />
                                                 </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
+                                                <button
+                                                    onClick={() => handleResetPassword(user)}
+                                                    disabled={!canModify}
+                                                    className={`p-1 rounded transition ${
+                                                        canModify
+                                                            ? 'text-yellow-400 hover:text-yellow-300 cursor-pointer'
+                                                            : 'text-gray-600 cursor-not-allowed'
+                                                    }`}
+                                                    title={canModify ? 'Restablecer contraseña' : disabledTooltip}
+                                                >
+                                                    <LockClosedIcon className="h-4 w-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleToggleStatusClick(user)}
+                                                    disabled={!canModify}
+                                                    className={`p-1 rounded transition ${
+                                                        canModify
+                                                            ? user.enabled 
+                                                                ? 'text-red-400 hover:text-red-300 cursor-pointer'
+                                                                : 'text-green-400 hover:text-green-300 cursor-pointer'
+                                                            : 'text-gray-600 cursor-not-allowed'
+                                                    }`}
+                                                    title={
+                                                        canModify 
+                                                            ? (user.enabled ? 'Desactivar' : 'Activar')
+                                                            : disabledTooltip
+                                                    }
+                                                >
+                                                    {user.enabled ? <EyeIcon className="h-4 w-4" /> : <EyeOffIcon className="h-4 w-4" />}
+                                                </button>
+
+                                                {isSuperAdmin && (
+                                                    <button
+                                                        onClick={() => handleDeleteClick(user)}
+                                                        disabled={!canModify}
+                                                        className={`p-1 rounded transition ${
+                                                            canModify
+                                                                ? 'text-red-400 hover:text-red-300 cursor-pointer'
+                                                                : 'text-gray-600 cursor-not-allowed'
+                                                        }`}
+                                                        title={canModify ? 'Eliminar usuario' : disabledTooltip}
+                                                    >
+                                                        <TrashIcon className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
