@@ -7,7 +7,7 @@ export const getUserProfile = async () => {
   if (authHeader) {
     headers.append('Authorization', authHeader);
   } else {
-    throw new Error('Token de autenticación faltante. Por favor, inicie sesión nuevamente.');
+    throw new Error('Sesión expirada. Por favor, inicie sesión nuevamente.');
   }
 
   try {
@@ -20,7 +20,7 @@ export const getUserProfile = async () => {
       return await response.json();
     } else if (response.status === 401 || response.status === 403) {
       logout();
-      throw new Error('Acceso no autorizado. Por favor, inicie sesión nuevamente.');
+      throw new Error('Sesión Expirada');
     } else {
       const errorText = await response.text();
       throw new Error(`Error al cargar el perfil de usuario: ${response.status} - ${errorText}`);
@@ -38,7 +38,7 @@ export const updateUserProfile = async (profileData) => {
   if (authHeader) {
     headers.append('Authorization', authHeader);
   } else {
-    throw new Error('Token de autenticación faltante. Por favor, inicie sesión nuevamente.');
+    throw new Error('Sesión expirada. Por favor, inicie sesión nuevamente.');
   }
   headers.append('Content-Type', 'application/json');
 
@@ -57,7 +57,7 @@ export const updateUserProfile = async (profileData) => {
       return { message: 'Perfil actualizado correctamente', ...data };
     } else if (response.status === 401 || response.status === 403) {
       logout();
-      throw new Error('Acceso no autorizado. Por favor, inicie sesión nuevamente.');
+      throw new Error('Sesión Expirada');
     } else {
       const errorText = await response.text();
       
@@ -93,7 +93,7 @@ export const changePassword = async (passwordData) => {
   if (authHeader) {
     headers.append('Authorization', authHeader);
   } else {
-    throw new Error('Token de autenticación faltante. Por favor, inicie sesión nuevamente.');
+    throw new Error('Sesión expirada. Por favor, inicie sesión nuevamente.');
   }
   headers.append('Content-Type', 'application/json');
 

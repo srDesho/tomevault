@@ -20,12 +20,24 @@ const fetchWithRetry = async (url, options = {}, retries = 3, delay = 1000) => {
     for (let i = 0; i < retries; i++) {
         try {
             const response = await fetch(url, newOptions);
+            
+            // Check for authentication errors (handled by interceptor)
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Sesión expirada');
+            }
+            
             if (!response.ok) {
                 const errorBody = await response.text();
                 throw new Error(`Error HTTP! Estado: ${response.status} - ${response.statusText}. Detalles: ${errorBody}`);
             }
+            
             return await response.json();
         } catch (error) {
+            // Don't retry on authentication errors
+            if (error.message === 'Sesión expirada') {
+                throw error;
+            }
+            
             console.error(`Intento ${i + 1} fallido para ${url}:`, error);
             if (i < retries - 1) {
                 await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));

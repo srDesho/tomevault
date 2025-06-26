@@ -9,9 +9,8 @@ const handleResponse = async (response) => {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     
-    // Handle specific HTTP status codes with appropriate error messages
-    if (response.status === 403) {
-      throw new Error(errorData.message || 'No tienes permisos para realizar esta acción');
+    if (response.status === 403 || response.status === 401) {
+      throw new Error('Sesión expirada');
     }
     
     if (response.status === 404) {
@@ -25,7 +24,6 @@ const handleResponse = async (response) => {
     throw new Error(errorData.message || 'Error en la operación');
   }
   
-  // For DELETE requests and other operations that don't return content
   if (response.status === 204) {
     return { success: true };
   }

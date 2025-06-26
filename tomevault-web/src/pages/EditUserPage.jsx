@@ -41,6 +41,9 @@ const EditUserPage = () => {
           birthDate: formattedDate
         });
       } catch (err) {
+        if (error.message === 'Sesión expirada') {
+          return;
+        }
         showToast('error', 'Error al cargar los datos del usuario.');
       } finally {
         setLoading(false);
@@ -106,6 +109,9 @@ const EditUserPage = () => {
       // Redirect after 2 seconds
       setTimeout(() => navigate('/admin/users'), 2000);
     } catch (err) {
+      if (error.message === 'Sesión expirada') {
+        return;
+      }
       const errorText = err.message || 'Error al actualizar el usuario';
       showToast('error', errorText);
     }

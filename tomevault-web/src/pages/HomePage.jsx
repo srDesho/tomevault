@@ -54,6 +54,11 @@ const HomePage = ({ refreshBooks }) => {
             setTotalPages(response.totalPages);
             setTotalElements(response.totalElements);
         } catch (error) {
+            // Check if it's a session expiration error
+            if (error.message === 'Sesión expirada') {
+                // Interceptor will handle redirect, don't show toast
+                return;
+            }
             console.error("Error loading books:", error);
             setDisplayBooks([]);
         } finally {
@@ -68,6 +73,11 @@ const HomePage = ({ refreshBooks }) => {
             setAllBooks(allBooksData);
             return allBooksData;
         } catch (error) {
+            // Check if it's a session expiration error
+            if (error.message === 'Sesión expirada') {
+                // Interceptor will handle redirect, don't show toast
+                return [];
+            }
             console.error("Error loading all books for search:", error);
             setAllBooks([]);
             return [];
@@ -221,6 +231,11 @@ const HomePage = ({ refreshBooks }) => {
             }
             
         } catch (error) {
+            // Check if it's a session expiration error
+            if (error.message === 'Sesión expirada') {
+                // Interceptor will handle redirect, don't show toast
+                return;
+            }
             showToast('error', error.message || 'Error al eliminar el libro');
         } finally {
             setShowDeleteModal(false);

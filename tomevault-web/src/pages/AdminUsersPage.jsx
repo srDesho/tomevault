@@ -121,6 +121,9 @@ const AdminUsersPage = () => {
             setAllUsers(nonDeletedUsers);
             return nonDeletedUsers;
         } catch (error) {
+            if (error.message === 'Sesión expirada') {
+                return [];
+            }
             console.error("Error loading all users:", error);
             setAllUsers([]);
             return [];
@@ -349,6 +352,9 @@ const AdminUsersPage = () => {
             
             showToast('success', `Usuario ${newEnabledStatus ? 'activado' : 'desactivado'} correctamente.`);
         } catch (err) {
+            if (error.message === 'Sesión expirada') {
+                return [];
+            }
             showToast('error', 'Error al actualizar estado del usuario.');
         } finally {
             setToggleStatusModal(null);
@@ -380,6 +386,9 @@ const AdminUsersPage = () => {
             setNewPassword('');
             setPasswordError('');
         } catch (err) {
+            if (error.message === 'Sesión expirada') {
+                return [];
+            }
             const errorText = err.message || 'Error al restablecer contraseña.';
             showToast('error', errorText);
         }
@@ -434,6 +443,9 @@ const AdminUsersPage = () => {
             
             showToast('success', 'Usuario eliminado correctamente.');
         } catch (err) {
+            if (error.message === 'Sesión expirada') {
+                return [];
+            }
             showToast('error', 'Error al eliminar usuario.');
         }
         setDeleteConfirmModal(null);
@@ -551,16 +563,16 @@ const AdminUsersPage = () => {
                                         >
                                             <td className="p-3">{user.id}</td>
                                             <td className="p-3">
-  <div className="flex items-center gap-2">
-    {user.username}
-    {!canModify && (
-      <LockClosedIcon 
-        className="h-4 w-4 text-yellow-400" 
-        title={disabledTooltip}
-      />
-    )}
-  </div>
-</td>
+                                            <div className="flex items-center gap-2">
+                                                {user.username}
+                                                {!canModify && (
+                                                <LockClosedIcon 
+                                                    className="h-4 w-4 text-yellow-400" 
+                                                    title={disabledTooltip}
+                                                />
+                                                )}
+                                            </div>
+                                            </td>
                                             <td className="p-3">{user.email}</td>
                                             <td className="p-3">
                                                 <div className="flex flex-wrap gap-1">

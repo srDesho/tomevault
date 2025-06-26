@@ -1,9 +1,10 @@
 // Modern login page with dark theme, proper sizing and zoom effect
 // Matches the original white form dimensions with dark theme and hover animation
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff } from 'lucide-react';
 import { login } from '../services/AuthService';
+import { checkSessionExpired } from '../utils/authInterceptor';
 
 const LoginPage = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ const LoginPage = ({ onLoginSuccess }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sessionExpiredMessage, setSessionExpiredMessage] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,6 +40,20 @@ const LoginPage = ({ onLoginSuccess }) => {
     setShowPassword(!showPassword);
   };
 
+  useEffect(() => {
+    // Check if user was redirected due to session expiration
+    if (checkSessionExpired()) {
+      setSessionExpiredMessage(true);
+      setError('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+      
+      // Clear message after 5 seconds
+      setTimeout(() => {
+        setSessionExpiredMessage(false);
+        setError('');
+      }, 5000);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
       <div className="bg-gray-800 rounded-xl shadow-lg p-6 max-w-md w-full border border-gray-700 transform transition-all duration-300 hover:scale-[1.02]">
@@ -49,8 +65,19 @@ const LoginPage = ({ onLoginSuccess }) => {
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded text-center bg-red-900 bg-opacity-50 text-red-200 text-sm">
-            {error}
+          <div className={`mb-4 p-3 rounded text-center text-sm ${
+            sessionExpiredMessage 
+              ? 'bg-yellow-600 bg-opacity-80 text-yellow-200' 
+              : 'bg-red-900 bg-opacity-50 text-red-200'
+          }`}>
+            <div className="flex items-center justify-center gap-2">
+              {sessionExpiredMessage && (
+                <svg className="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              )}
+              <span>{error}</span>
+            </div>
           </div>
         )}
 

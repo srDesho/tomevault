@@ -73,6 +73,9 @@ const UserSettingsPage = () => {
                     birthDate: data.birthDate ? data.birthDate.split('T')[0] : '',
                 });
             } catch (err) {
+                if (error.message === 'Sesión expirada') {
+                    return;
+                }
                 showToast('error', err.message || 'Error al cargar el perfil.');
             } finally {
                 setLoading(false);
@@ -141,6 +144,9 @@ const UserSettingsPage = () => {
             setShowProfileConfirm(false);
             setPendingProfileData(null);
         } catch (err) {
+            if (error.message === 'Sesión expirada') {
+                return;
+            }
             showToast('error', err.message || 'Error al actualizar el perfil');
         } finally {
             setLoading(false);
@@ -199,6 +205,9 @@ const UserSettingsPage = () => {
             });
             setShowPasswordModal(false);
         } catch (err) {
+            if (error.message === 'Sesión expirada') {
+                return;
+            }
             showToast('error', err.message || 'Error al cambiar la contraseña');
         } finally {
             setLoading(false);

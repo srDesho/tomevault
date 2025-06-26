@@ -47,6 +47,9 @@ const BookDetailPage = () => {
         }
         
       } catch (error) {
+        if (error.message === 'Sesión expirada') {
+                return;
+        }
         console.error("Error fetching book:", error);
         showToast('error', error.message || "Error al cargar los detalles del libro.");
       } finally {
@@ -80,6 +83,9 @@ const BookDetailPage = () => {
       setReadCount(updatedBook.readCount);
       showToast('success', `Contador incrementado a ${updatedBook.readCount}`);
     } catch (error) {
+      if (error.message === 'Sesión expirada') {
+                return [];
+      }
       showToast('error', error.message);
     }
   };
@@ -100,6 +106,9 @@ const BookDetailPage = () => {
       setReadCount(updatedBook.readCount);
       showToast('success', `Contador decrementado a ${updatedBook.readCount}`);
     } catch (error) {
+      if (error.message === 'Sesión expirada') {
+                return [];
+      }
       showToast('error', error.message);
     }
   };
@@ -120,6 +129,9 @@ const BookDetailPage = () => {
       setBookDetails(addedBook);
       showToast('success', `"${bookDetails.title}" agregado a tu colección`);
     } catch (error) {
+      if (error.message === 'Sesión expirada') {
+                return;
+      }
       showToast('error', error.message || "Error al agregar el libro a tu colección");
     }
   };
