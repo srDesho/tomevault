@@ -50,7 +50,7 @@ public class JwtUtils {
                 .withClaim("authorities", authorities)
                 .withIssuedAt(new Date()) // Timestamp when the token was issued
                 // Token expiration time (e.g., 30 minutes from now)
-                .withExpiresAt(new Date(System.currentTimeMillis() + 1800)) // 30 minutes in milliseconds 1800000
+                .withExpiresAt(new Date(System.currentTimeMillis() + 1800000)) // 30 minutes in milliseconds 1800000
                 .withJWTId(UUID.randomUUID().toString())  // Unique ID for the JWT
                 // Not-before time (token is not valid before this timestamp)
                 .withNotBefore(new Date(System.currentTimeMillis()))

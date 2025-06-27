@@ -55,7 +55,7 @@ const LoginPage = ({ onLoginSuccess }) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
       <div className="bg-gray-800 rounded-xl shadow-lg p-6 max-w-md w-full border border-gray-700 transform transition-all duration-300 hover:scale-[1.02]">
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
