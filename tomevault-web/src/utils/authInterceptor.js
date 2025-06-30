@@ -8,7 +8,7 @@ let originalFetch = null;
 
 /**
  * Checks if the URL should be excluded from auth interception (login/register endpoints)
- * @param {string} url - The request URL
+ * @param {string|Request} url - The request URL or Request object
  * @returns {boolean} True if URL should be excluded
  */
 const isAuthEndpoint = (url) => {
@@ -17,7 +17,11 @@ const isAuthEndpoint = (url) => {
     '/auth/sign-up',
     '/auth/register'
   ];
-  return authEndpoints.some(endpoint => url.includes(endpoint));
+  
+  // Extrae la URL si es un objeto Request
+  const urlString = typeof url === 'string' ? url : url.url || '';
+  
+  return authEndpoints.some(endpoint => urlString.includes(endpoint));
 };
 
 /**
@@ -56,7 +60,8 @@ const handleTokenExpiration = () => {
  * This creates a global interceptor for all fetch requests
  */
 const fetchWithAuthInterceptor = async (...args) => {
-  const [url, options] = args;
+  // Toma el primer argumento que puede ser string o Request
+  const url = args[0];
   
   try {
     // Use original Fetch, not interceptor.
