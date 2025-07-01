@@ -1,14 +1,22 @@
-// Book detail page showing book information and read count management
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import * as BookService from '../services/BookService';
 import * as AuthService from '../services/AuthService';
-import { PlusIcon, MinusIcon, BookmarkIcon, ArrowLeftIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/outline';
+import { 
+  PlusIcon, 
+  MinusIcon, 
+  BookmarkIcon, 
+  ArrowLeftIcon, 
+  CheckCircleIcon, 
+  XCircleIcon,
+  LoginIcon 
+} from '@heroicons/react/outline';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
 const BookDetailPage = () => {
   const { bookId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [bookDetails, setBookDetails] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,13 +28,31 @@ const BookDetailPage = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(AuthService.isAuthenticated());
   const [isInCollection, setIsInCollection] = useState(false);
 
+  // Check if session is still valid
+  const checkSessionValidity = () => {
+    const stillLoggedIn = AuthService.isAuthenticated();
+    if (!stillLoggedIn && isLoggedIn) {
+      // Session expired
+      setIsLoggedIn(false);
+      showToast('error', 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+      setTimeout(() => navigate('/login', { state: { from: location.pathname } }), 2000);
+      return false;
+    }
+    return stillLoggedIn;
+  };
+
+  useEffect(() => {
+    if (location.state?.from) {
+      sessionStorage.setItem('bookDetailSource', location.state.from);
+    }
+  }, [location.state]);
+
   useEffect(() => {
     const fetchBook = async () => {
       try {
         setLoading(true);
         setToast(null);
         
-        // Try to get book - this will check collection first, then Google API
         const book = await BookService.getBookById(bookId);
         
         if (!book) {
@@ -35,7 +61,6 @@ const BookDetailPage = () => {
 
         setBookDetails(book);
         
-        // Check if book is from user's collection
         if (book.fromUserCollection && book.id) {
           setIsInCollection(true);
           setInternalId(book.id);
@@ -48,7 +73,7 @@ const BookDetailPage = () => {
         
       } catch (error) {
         if (error.message === 'Sesión expirada') {
-                return;
+          return;
         }
         console.error("Error fetching book:", error);
         showToast('error', error.message || "Error al cargar los detalles del libro.");
@@ -60,16 +85,14 @@ const BookDetailPage = () => {
     fetchBook();
   }, [bookId]);
 
-  // Show toast notification with auto-dismiss
   const showToast = (type, message) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 4000);
   };
 
   const handleIncrement = async () => {
-    if (!isLoggedIn) {
-      showToast('error', "Debes iniciar sesión para registrar lecturas");
-      setTimeout(() => navigate('/login'), 1500);
+    // Check session validity before proceeding
+    if (!checkSessionValidity()) {
       return;
     }
 
@@ -84,15 +107,16 @@ const BookDetailPage = () => {
       showToast('success', `Contador incrementado a ${updatedBook.readCount}`);
     } catch (error) {
       if (error.message === 'Sesión expirada') {
-                return [];
+        handleSessionExpired();
+        return;
       }
       showToast('error', error.message);
     }
   };
 
   const handleDecrement = async () => {
-    if (!isLoggedIn) {
-      showToast('error', "Debes iniciar sesión para registrar lecturas");
+    // Check session validity before proceeding
+    if (!checkSessionValidity()) {
       return;
     }
 
@@ -107,16 +131,16 @@ const BookDetailPage = () => {
       showToast('success', `Contador decrementado a ${updatedBook.readCount}`);
     } catch (error) {
       if (error.message === 'Sesión expirada') {
-                return [];
+        handleSessionExpired();
+        return;
       }
       showToast('error', error.message);
     }
   };
 
   const handleAddToCollection = async () => {
-    if (!isLoggedIn) {
-      showToast('error', "Debes iniciar sesión para agregar libros");
-      setTimeout(() => navigate('/login'), 1500);
+    // Check session validity before proceeding
+    if (!checkSessionValidity()) {
       return;
     }
 
@@ -130,10 +154,33 @@ const BookDetailPage = () => {
       showToast('success', `"${bookDetails.title}" agregado a tu colección`);
     } catch (error) {
       if (error.message === 'Sesión expirada') {
-                return;
+        handleSessionExpired();
+        return;
       }
       showToast('error', error.message || "Error al agregar el libro a tu colección");
     }
+  };
+
+  const handleSessionExpired = () => {
+    setIsLoggedIn(false);
+    showToast('error', 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+    setTimeout(() => navigate('/login', { state: { from: location.pathname } }), 2000);
+  };
+
+  const handleGoBack = () => {
+    const source = sessionStorage.getItem('bookDetailSource');
+    sessionStorage.removeItem('bookDetailSource');
+    
+    if (source === 'search') {
+      navigate('/search');
+    } else {
+      navigate('/');
+    }
+  };
+
+  const getBackButtonText = () => {
+    const source = sessionStorage.getItem('bookDetailSource');
+    return source === 'search' ? 'Volver a búsqueda' : 'Volver a mi colección';
   };
 
   if (loading) {
@@ -147,9 +194,12 @@ const BookDetailPage = () => {
           <h3 className="text-lg sm:text-xl text-red-400 mb-4">
             {toast ? toast.message : "Libro no encontrado o error al cargar."}
           </h3>
-          <Link to="/" className="text-blue-400 hover:text-blue-300 text-sm sm:text-base">
-            Volver a la colección
-          </Link>
+          <button 
+            onClick={handleGoBack}
+            className="text-blue-400 hover:text-blue-300 text-sm sm:text-base"
+          >
+            {getBackButtonText()}
+          </button>
         </div>
       </div>
     );
@@ -158,21 +208,18 @@ const BookDetailPage = () => {
   return (
     <div className="w-full px-2 sm:px-4 max-w-full overflow-x-hidden">
       <div className="max-w-6xl mx-auto">
-        {/* Page Title - Consistent with other pages */}
         <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-4 sm:mb-6 text-center px-2 leading-tight">
           Detalles del Libro
         </h2>
 
-        {/* Back Button */}
-        <Link 
-          to="/" 
+        <button 
+          onClick={handleGoBack}
           className="inline-flex items-center text-blue-400 hover:text-blue-300 mb-4 sm:mb-6 transition-colors text-sm sm:text-base"
         >
           <ArrowLeftIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-1 sm:mr-2" />
-          Volver
-        </Link>
+          {getBackButtonText()}
+        </button>
 
-        {/* Toast notification - appears in top right corner */}
         {toast && (
           <div className={`fixed top-20 right-4 z-50 p-4 rounded-lg shadow-2xl flex items-center gap-3 animate-slide-in max-w-md ${
             toast.type === 'success' 
@@ -190,10 +237,8 @@ const BookDetailPage = () => {
           </div>
         )}
 
-        {/* Book Details Card */}
         <div className="bg-gray-800 rounded-lg sm:rounded-xl shadow-xl overflow-hidden border border-gray-700">
           <div className="flex flex-col md:flex-row items-start gap-4 sm:gap-6 p-4 sm:p-6">
-            {/* Book Cover - Centered and responsive */}
             <div className="flex justify-center w-full md:w-auto md:flex-shrink-0">
               <img
                 src={bookDetails.thumbnail || "https://placehold.co/400x600/1a202c/FFF?text=No+Cover"}
@@ -206,7 +251,6 @@ const BookDetailPage = () => {
               />
             </div>
 
-            {/* Book Information */}
             <div className="flex-1 min-w-0 w-full">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-2 text-center md:text-left break-words">
                 {bookDetails.title}
@@ -224,8 +268,30 @@ const BookDetailPage = () => {
                 />
               </div>
               
-              {/* Warning message - only show if NOT in collection */}
-              {!isInCollection && (
+              {!isLoggedIn && (
+                <div className="mb-4 p-4 bg-blue-900 bg-opacity-30 border border-blue-500 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <LoginIcon className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-blue-200 text-sm font-medium mb-2">
+                        Inicia sesión para gestionar este libro
+                      </p>
+                      <p className="text-blue-300 text-xs mb-3">
+                        Podrás agregar el libro a tu colección y llevar un registro de tus lecturas.
+                      </p>
+                      <button
+                        onClick={() => navigate('/login', { state: { from: location.pathname } })}
+                        className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                      >
+                        <LoginIcon className="h-4 w-4" />
+                        Iniciar Sesión
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {isLoggedIn && !isInCollection && (
                 <div className="mb-4 p-3 bg-yellow-900 bg-opacity-20 border border-yellow-600 rounded-lg">
                   <p className="text-yellow-400 text-sm text-center">
                     ⚠️ Este libro no está en tu colección. Agrégalo para poder registrar lecturas.
@@ -233,21 +299,19 @@ const BookDetailPage = () => {
                 </div>
               )}
               
-              {/* Read Count and Actions - Responsive */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mt-6 sm:mt-8">
-                {/* Read Counter */}
-                <div className="flex items-center justify-center bg-gray-700 rounded-lg px-4 py-3 border border-gray-600">
-                  <BookmarkIcon className="h-5 w-5 text-blue-400 mr-2" />
-                  <span className="font-medium text-sm sm:text-base">Lecturas:</span>
-                  <span className="ml-2 text-white font-semibold text-sm sm:text-base">{readCount}</span>
-                </div>
+                {isInCollection && (
+                  <div className="flex items-center justify-center bg-gray-700 rounded-lg px-4 py-3 border border-gray-600">
+                    <BookmarkIcon className="h-5 w-5 text-blue-400 mr-2" />
+                    <span className="font-medium text-sm sm:text-base">Lecturas:</span>
+                    <span className="ml-2 text-white font-semibold text-sm sm:text-base">{readCount}</span>
+                  </div>
+                )}
                 
-                {/* Action Buttons */}
                 <div className="flex flex-col xs:flex-row gap-2 flex-1 justify-center sm:justify-end">
                   {isLoggedIn ? (
                     <>
                       {isInCollection ? (
-                        // Book is in collection - show increment/decrement buttons
                         <>
                           <button
                             onClick={() => setShowIncrementModal(true)}
@@ -271,7 +335,6 @@ const BookDetailPage = () => {
                           </button>
                         </>
                       ) : (
-                        // Book is NOT in collection - show add button
                         <button
                           onClick={handleAddToCollection}
                           className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg transition-colors flex-1 xs:flex-none text-sm sm:text-base"
@@ -282,9 +345,13 @@ const BookDetailPage = () => {
                       )}
                     </>
                   ) : (
-                    <div className="text-yellow-400 text-xs sm:text-sm text-center py-2 px-4 bg-yellow-900 bg-opacity-20 rounded-lg border border-yellow-600">
-                      Inicia sesión para registrar lecturas
-                    </div>
+                    <button
+                      onClick={() => navigate('/login', { state: { from: location.pathname } })}
+                      className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg transition-colors text-sm sm:text-base"
+                    >
+                      <LoginIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                      Iniciar sesión
+                    </button>
                   )}
                 </div>
               </div>
@@ -293,7 +360,6 @@ const BookDetailPage = () => {
         </div>
       </div>
 
-      {/* Modal: Increment Read Count */}
       {showIncrementModal && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-3 sm:p-4 z-50">
           <div className="bg-gray-800 p-6 sm:p-8 rounded-lg shadow-2xl max-w-sm w-full text-center mx-2 border border-gray-700">
@@ -325,7 +391,6 @@ const BookDetailPage = () => {
         </div>
       )}
 
-      {/* Modal: Decrement Read Count */}
       {showDecrementModal && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-3 sm:p-4 z-50">
           <div className="bg-gray-800 p-6 sm:p-8 rounded-lg shadow-2xl max-w-sm w-full text-center mx-2 border border-gray-700">

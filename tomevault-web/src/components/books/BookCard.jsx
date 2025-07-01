@@ -67,6 +67,7 @@ const BookCard = ({ book, isSearchList, onAdd, onDelete }) => {
               <>
                 <Link
                   to={`/books/${detailId}`}
+                  state={{ from: 'search' }}
                   className={`bg-gray-700 hover:bg-gray-600 text-white p-1 rounded text-xs flex items-center justify-center w-6 h-6 ${isLinkDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                   onClick={(e) => { if (isLinkDisabled) e.preventDefault(); }}
                   title="Ver detalles"
@@ -85,6 +86,7 @@ const BookCard = ({ book, isSearchList, onAdd, onDelete }) => {
               <>
                 <Link
                   to={`/books/${detailId}`}
+                  state={{ from: 'home' }}
                   className={`bg-blue-600 hover:bg-blue-700 text-white p-1 rounded text-xs flex items-center justify-center w-6 h-6 ${isLinkDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
                   onClick={(e) => { if (isLinkDisabled) e.preventDefault(); }}
                   title="Ver detalles"
