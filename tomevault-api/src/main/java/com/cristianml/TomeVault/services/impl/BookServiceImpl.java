@@ -120,13 +120,12 @@ public class BookServiceImpl implements IBookService {
     @Override
     public BookResponseDTO decrementBookReadCount(Long bookId, UserEntity user) {
         int updateRows = this.bookRepository.decrementReadCount(bookId, user);
-        System.out.println("================================ " + updateRows);
+
         if (updateRows == 0) {
             // Re-fetch to check if book exists at all, or if it's just not owned by user or readCount is 0.
             BookEntity book = bookRepository.findById(bookId)
                     .orElseThrow(() -> new ResourceNotFoundException("Book not found with ID: " + bookId));
             if (book.getReadCount() == 0) {
-                System.out.println("================================ " + book.getReadCount());
                 throw new IllegalArgumentException("Cannot decrement read count below zero for book ID: " + bookId);
             } else {
                 throw new ResourceNotFoundException("Book not found or not owned by user with ID: " + bookId);
@@ -194,10 +193,13 @@ public class BookServiceImpl implements IBookService {
      */
     @Override
     public List<BookResponseDTO> searchBooksFromGoogle(String query) {
-        return googleBooksIntegrationService.searchBooks(query).stream()
-                .map(bookMapper::toEntity) // Converts Google DTOs to entities.
-                .map(bookMapper::toResponseDTO) // Converts entities to response DTOs.
+        List<GoogleBookItem> googleResults = googleBooksIntegrationService.searchBooks(query);
+
+        List<BookResponseDTO> finalResults = googleResults.stream()
+                .map(bookMapper::toEntity)
+                .map(bookMapper::toResponseDTO)
                 .toList();
+        return finalResults;
     }
 
     /**

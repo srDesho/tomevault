@@ -2,14 +2,14 @@ import React from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/outline';
 
 /**
- * Componente de paginación reutilizable para listas (libros, usuarios, etc.)
- * @param {number} currentPage - Página actual (0-indexed)
- * @param {number} totalPages - Número total de páginas
- * @param {function} onPageChange - Callback cuando cambia la página
- * @param {number} totalItems - Total de elementos (no páginas)
- * @param {number} itemsPerPage - Cantidad de elementos por página
- * @param {string} itemName - Nombre del ítem para mostrar ("libro", "usuario", etc.)
- * @param {boolean} pluralizeItemName - Si el nombre debe pluralizarse automáticamente
+ * Reusable pagination component for lists (books, users, etc.)
+ * @param {number} currentPage - Current page (0-indexed)
+ * @param {number} totalPages - Total number of pages
+ * @param {function} onPageChange - Callback when page changes
+ * @param {number} totalItems - Total number of items (not pages)
+ * @param {number} itemsPerPage - Number of items per page
+ * @param {string} itemName - Item name for display ("book", "user", etc.)
+ * @param {boolean} pluralizeItemName - Whether to automatically pluralize the item name
  */
 const Pagination = ({
   currentPage,
@@ -20,14 +20,14 @@ const Pagination = ({
   itemName = 'elemento',
   pluralizeItemName = true,
 }) => {
-  // No mostrar paginación si hay una o ninguna página
+  // Don't show pagination if there's only one page or none
   if (totalPages <= 1) return null;
 
-  // Calcular rango de elementos mostrados
+  // Calculate range of displayed items
   const startItem = currentPage * itemsPerPage + 1;
   const endItem = Math.min((currentPage + 1) * itemsPerPage, totalItems);
 
-  // Determinar el nombre plural correcto
+  // Determine correct plural name
   const getItemName = (count) => {
     if (!pluralizeItemName) return itemName;
     const singular = itemName.toLowerCase();
@@ -43,7 +43,7 @@ const Pagination = ({
 
   const itemLabel = getItemName(totalItems);
 
-  // Generar páginas visibles (máximo 5, centradas en la página actual)
+  // Generate visible pages (max 5, centered on current page)
   const getPageNumbers = () => {
     const pagesToShow = 5;
     const half = Math.floor(pagesToShow / 2);
@@ -72,15 +72,15 @@ const Pagination = ({
 
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 text-sm">
-      {/* Información de resultados */}
+      {/* Results information */}
       <div className="text-gray-400">
         Mostrando <span className="font-medium text-white">{startItem}-{endItem}</span>{' '}
         de {totalItems} {itemLabel}
       </div>
 
-      {/* Navegación */}
+      {/* Navigation controls */}
       <nav aria-label="Paginación" className="flex items-center gap-1 sm:gap-2">
-        {/* Botón anterior */}
+        {/* Previous page button */}
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 0}
@@ -90,7 +90,7 @@ const Pagination = ({
           <ChevronLeftIcon className="h-4 w-4" />
         </button>
 
-        {/* Números de página */}
+        {/* Page number buttons */}
         <div className="flex gap-1">
           {visiblePages.map((page) => (
             <button
@@ -109,7 +109,7 @@ const Pagination = ({
           ))}
         </div>
 
-        {/* Botón siguiente */}
+        {/* Next page button */}
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages - 1}

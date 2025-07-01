@@ -40,6 +40,12 @@ public class GoogleBookIntegrationServiceImpl implements IGoogleBooksIntegration
         String url = buildSearchUrl(query);
         GoogleBooksResponse response = restTemplate.getForObject(url, GoogleBooksResponse.class);
 
+        // Debug simple
+        int itemCount = 0;
+        if (response != null && response.getItems() != null) {
+            itemCount = response.getItems().size();
+        }
+
         return Optional.ofNullable(response)
                 .map(GoogleBooksResponse::getItems)
                 .orElse(Collections.emptyList());
@@ -81,7 +87,7 @@ public class GoogleBookIntegrationServiceImpl implements IGoogleBooksIntegration
                 .queryParam("q", query)
                 .queryParam("key", apiKey)
                 .queryParam("maxResults", 20) // Limits the number of results per search.
-                .queryParam("langRestrict", "es") // Restricts results to Spanish language.
+                //.queryParam("langRestrict", "es") // Restricts results to Spanish language.
                 .build()
                 .toUriString();
     }
