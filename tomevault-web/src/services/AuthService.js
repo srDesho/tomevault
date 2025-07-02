@@ -5,8 +5,8 @@ export const BACKEND_BASE_URL = 'http://localhost:8080/api/v1';
 export const TOKEN_KEY = 'jwtToken';
 
 /**
- * Checks if a JWT token is expired
- * @param {string} token - JWT token to check
+ * Validates JWT token expiration
+ * @param {string} token - JWT token to validate
  * @returns {boolean} True if token is expired or invalid
  */
 export const isTokenExpired = (token) => {
@@ -21,7 +21,7 @@ export const isTokenExpired = (token) => {
   }
 };
 
-// Login with username or email
+// Authenticate user with username or email
 export const login = async (usernameOrEmail, password) => {
   console.log(`[AuthService] Logging in with: ${usernameOrEmail}`);
 
@@ -31,7 +31,7 @@ export const login = async (usernameOrEmail, password) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      // CHANGE HERE: use usernameOrEmail instead of username
+      // Use usernameOrEmail field for backend compatibility
       body: JSON.stringify({ usernameOrEmail, password }),
     });
 
@@ -40,11 +40,11 @@ export const login = async (usernameOrEmail, password) => {
     if (response.ok) {
       const data = await response.json();
       if (data.jwt) {
-        // Store JWT token
+        // Store JWT token in localStorage
         localStorage.setItem(TOKEN_KEY, data.jwt);
         console.log('[AuthService] Login successful');
 
-        // Get user profile
+        // Fetch user profile data
         const profileResponse = await fetch(`${BACKEND_BASE_URL}/user`, {
           headers: { 'Authorization': `Bearer ${data.jwt}` }
         });
@@ -54,7 +54,7 @@ export const login = async (usernameOrEmail, password) => {
           localStorage.setItem('userProfile', JSON.stringify(userProfile));
           console.log('[AuthService] User profile stored');
         } else {
-          // Fallback profile
+          // Create fallback profile if fetch fails
           const fallbackProfile = { username: usernameOrEmail, roles: ['USER'] };
           localStorage.setItem('userProfile', JSON.stringify(fallbackProfile));
           console.log('[AuthService] Used fallback profile');
@@ -65,7 +65,7 @@ export const login = async (usernameOrEmail, password) => {
         throw new Error('No se recibió el token de autenticación.');
       }
     } else {
-      // Handle specific error codes
+      // Parse error response from server
       let errorData;
       try {
         errorData = await response.json();
@@ -75,7 +75,7 @@ export const login = async (usernameOrEmail, password) => {
       
       console.error('[AuthService] Login failed:', response.status, errorData);
 
-      // Check for specific error codes from backend
+      // Handle specific backend error codes
       if (errorData && errorData.errorCode) {
         switch (errorData.errorCode) {
           case 'account_disabled':
@@ -88,7 +88,7 @@ export const login = async (usernameOrEmail, password) => {
             throw new Error(errorData.message || 'Error de autenticación.');
         }
       } else if (response.status === 401) {
-        // Fallback for compatibility
+        // Fallback error for unauthorized responses
         throw new Error('Credenciales inválidas. Por favor, inténtelo de nuevo.');
       } else {
         throw new Error(`Error ${response.status}: ${errorData?.message || 'Error desconocido'}`);
@@ -100,7 +100,7 @@ export const login = async (usernameOrEmail, password) => {
   }
 };
 
-// Register new user
+// Register new user account
 export const register = async (userData) => {
   console.log('[AuthService] Registering user:', userData.email);
 
@@ -141,29 +141,29 @@ export const register = async (userData) => {
   }
 };
 
-// Logout user
+// Clear authentication data and logout user
 export const logout = () => {
   console.log('[AuthService] Logging out');
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem('userProfile');
 };
 
-// Get JWT token
+// Retrieve JWT token from localStorage
 export const getJwt = () => {
   return localStorage.getItem(TOKEN_KEY);
 };
 
-// Check if user is authenticated
+// Verify user authentication status
 export const isAuthenticated = () => {
   const token = getJwt();
   return token !== null && !isTokenExpired(token);
 };
 
-// Get authorization header with automatic expiration check
+// Generate authorization header with token validation
 export const getAuthHeader = () => {
   const token = getJwt();
   if (!token || isTokenExpired(token)) {
-    // Automatically clear expired token
+    // Clear expired token automatically
     logout();
     return null;
   }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/common/Header';
-import Footer from './components/common/Footer'; // Añadir Footer
+import Footer from './components/common/Footer';
 import HomePage from './pages/HomePage';
 import SearchPage from './pages/SearchPage';
 import BookDetailPage from './pages/BookDetailPage';
@@ -10,7 +10,7 @@ import RegisterPage from './pages/RegisterPage';
 import UserSettingsPage from './pages/UserSettingsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import EditUserPage from './pages/EditUserPage';
-import AboutPage from './pages/AboutPage'; // Añadir AboutPage
+import AboutPage from './pages/AboutPage';
 import * as BookService from './services/BookService';
 import * as AuthService from './services/AuthService';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -67,7 +67,7 @@ const App = () => {
                                     <Routes>
                                         <Route path="/login" element={<LoginPage />} />
                                         <Route path="/register" element={<RegisterPage />} />
-                                        <Route path="/about" element={<AboutPage />} /> {/* Añadir AboutPage */}
+                                        <Route path="/about" element={<AboutPage />} />
                                         <Route
                                             path="/"
                                             element={
@@ -117,7 +117,7 @@ const App = () => {
                                         <Route path="*" element={<Navigate to="/" />} />
                                     </Routes>
                                 </main>
-                                <Footer /> {/* Añadir Footer aquí */}
+                                <Footer />
                             </div>
                         </Router>
                     </AdminUsersProvider>

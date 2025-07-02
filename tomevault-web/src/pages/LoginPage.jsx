@@ -1,13 +1,14 @@
-// Modern login page with dark theme, proper sizing and zoom effect
-// Matches the original white form dimensions with dark theme and hover animation
+// Modern login page with dark theme and session handling
+// Handles authentication and redirects users to their intended destination
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff } from 'lucide-react';
 import { login } from '../services/AuthService';
 import { checkSessionExpired } from '../utils/authInterceptor';
 
 const LoginPage = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -23,11 +24,9 @@ const LoginPage = ({ onLoginSuccess }) => {
     try {
       const success = await login(username, password);
       if (success) {
-        if (onLoginSuccess && typeof onLoginSuccess === 'function') {
-          onLoginSuccess();
-        } else {
-          window.location.href = '/';
-        }
+        // Redirect to the page user came from, or home if none
+        const from = location.state?.from || '/';
+        window.location.href = from;
       }
     } catch (err) {
       setError(err.message);
@@ -52,7 +51,14 @@ const LoginPage = ({ onLoginSuccess }) => {
         setError('');
       }, 5000);
     }
-  }, []);
+    
+    // Check if there's a return path from expired session
+    const returnPath = sessionStorage.getItem('returnPath');
+    if (returnPath && !location.state?.from) {
+      sessionStorage.removeItem('returnPath');
+      window.history.replaceState({ from: returnPath }, '');
+    }
+  }, [location]);
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
