@@ -22,9 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * REST controller for managing book-related operations.
- */
 @RestController
 @RequestMapping("/books")
 @RequiredArgsConstructor
@@ -48,9 +45,6 @@ public class BookController {
         return ResponseEntity.ok(this.bookService.getBookFromGoogleBookApi(googleBookId));
     }
 
-    /**
-     * Retrieves a paginated list of books owned by the authenticated user.
-     */
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<BookResponseDTO>> getBooks(@AuthenticationPrincipal CustomUserDetails customUserDetails,
@@ -59,9 +53,6 @@ public class BookController {
         return ResponseEntity.ok(books);
     }
 
-    /**
-     * Adds a new book to the system for the authenticated user.
-     */
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BookResponseDTO> addBook(@AuthenticationPrincipal CustomUserDetails customUserDetails,
@@ -74,9 +65,6 @@ public class BookController {
         return ResponseEntity.created(location).body(saved);
     }
 
-    /**
-     * Deletes a specific book, ensuring user ownership and handling various exceptions.
-     */
     @DeleteMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Object> deleteBook(@AuthenticationPrincipal CustomUserDetails customUserDetails,
@@ -93,9 +81,6 @@ public class BookController {
         }
     }
 
-    /**
-     * Updates an existing book for the authenticated user.
-     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ADD_BOOK')")
     public ResponseEntity<BookResponseDTO> updateBook(@AuthenticationPrincipal CustomUserDetails customUserDetails,
@@ -105,9 +90,6 @@ public class BookController {
         return ResponseEntity.ok(updatedBook);
     }
 
-    /**
-     * Saves a book to the user's collection by importing its details from Google Books using its Google Book ID.
-     */
     @PostMapping("/from-google/{googleBookId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'USER', 'SUPER_ADMIN')")
     public ResponseEntity<BookResponseDTO> saveBookFromGoogle(@AuthenticationPrincipal CustomUserDetails customUserDetails,
@@ -116,9 +98,6 @@ public class BookController {
         return ResponseEntity.ok(savedBook);
     }
 
-    /**
-     * Searches for books using the Google Books API based on a query string.
-     */
     @GetMapping("/search-google")
     @PreAuthorize("permitAll()")
     public ResponseEntity<List<BookResponseDTO>> searchBooksFromGoogle(@RequestParam String query) {
@@ -126,7 +105,6 @@ public class BookController {
         return ResponseEntity.ok(searchResults);
     }
 
-    // Increment read count
     @PostMapping("/increment-read/{bookId}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<BookResponseDTO> incrementBookReadCount(

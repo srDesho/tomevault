@@ -1,6 +1,4 @@
-import { getAuthHeader } from './AuthService';
-
-const BACKEND_BASE_URL = 'http://localhost:8080/api/v1';
+import { BACKEND_BASE_URL, getAuthHeader } from './AuthService';
 
 // Generic function to handle API calls with authentication and retry logic
 const fetchWithRetry = async (url, options = {}, retries = 3, delay = 1000) => {

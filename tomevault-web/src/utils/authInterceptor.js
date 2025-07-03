@@ -5,9 +5,7 @@ import { logout, getJwt } from '../services/AuthService';
 let isRedirecting = false;
 let originalFetch = null;
 
-/**
- * Checks if the request should skip auth interception (public endpoints)
- */
+// Check if request should skip authentication interception (public endpoints)
 const shouldSkipAuthCheck = (url, options = {}) => {
   const urlString = typeof url === 'string' ? url : url.url || '';
   const method = options.method?.toUpperCase() || 'GET';
@@ -33,9 +31,7 @@ const shouldSkipAuthCheck = (url, options = {}) => {
   return isPublicEndpoint || isPublicBookView || isExternalAPI;
 };
 
-/**
- * Checks if request has Authorization header
- */
+// Check if request already has Authorization header
 const hasAuthHeader = (options = {}) => {
   const headers = options.headers || {};
   
@@ -50,23 +46,19 @@ const hasAuthHeader = (options = {}) => {
   return false;
 };
 
-/**
- * Checks if the response indicates an expired or invalid token
- */
+// Check if response indicates expired or invalid token
 const isTokenExpired = (response) => {
   return response.status === 401 || response.status === 403;
 };
 
-/**
- * Handles token expiration by logging out and redirecting to login
- */
+// Handle token expiration by logging out and redirecting to login page
 const handleTokenExpiration = () => {
   if (isRedirecting) return;
   
   isRedirecting = true;
   console.warn('[AuthInterceptor] Token expired or invalid, redirecting to login');
   
-  // Store current page before logout
+  // Store current page before logout for potential return
   const currentPath = window.location.pathname;
   
   // Clear authentication data
@@ -83,9 +75,7 @@ const handleTokenExpiration = () => {
   }, 100);
 };
 
-/**
- * Wraps the native fetch function to intercept and handle authentication errors
- */
+// Wrap native fetch function to intercept and handle authentication errors
 const fetchWithAuthInterceptor = async (...args) => {
   const [url, options = {}] = args;
   
@@ -108,9 +98,7 @@ const fetchWithAuthInterceptor = async (...args) => {
   }
 };
 
-/**
- * Replaces the global fetch function with our interceptor version
- */
+// Replace global fetch function with our interceptor version
 export const setupAuthInterceptor = () => {
   originalFetch = window.fetch;
   window.fetch = fetchWithAuthInterceptor;
@@ -122,9 +110,7 @@ export const setupAuthInterceptor = () => {
   };
 };
 
-/**
- * Checks if there's a session expiration flag
- */
+// Check if there's a session expiration flag set
 export const checkSessionExpired = () => {
   const expired = sessionStorage.getItem('sessionExpired') === 'true';
   if (expired) {

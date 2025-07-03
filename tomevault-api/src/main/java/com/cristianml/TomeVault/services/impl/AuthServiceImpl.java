@@ -1,6 +1,5 @@
 package com.cristianml.TomeVault.services.impl;
 
-import static com.cristianml.TomeVault.utilities.Utilities.validatePassword;
 import com.cristianml.TomeVault.dtos.requests.UserRegistrationRequestDTO;
 import com.cristianml.TomeVault.entities.UserEntity;
 import com.cristianml.TomeVault.mappers.UserMapper;
@@ -26,6 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.cristianml.TomeVault.utilities.Utilities.validatePassword;
 
 // Service implementation for authentication-related operations.
 // Handles user login, registration, and JWT token generation

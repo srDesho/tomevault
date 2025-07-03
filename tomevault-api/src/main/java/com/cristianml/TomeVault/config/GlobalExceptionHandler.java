@@ -15,6 +15,7 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // Handles invalid login credentials - wrong username or password
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Map<String, String>> handleBadCredentials(BadCredentialsException ex) {
         Map<String, String> error = new HashMap<>();
@@ -23,6 +24,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 
+    // Handles login attempts with disabled accounts
     @ExceptionHandler(AccountDisabledException.class)
     public ResponseEntity<Map<String, String>> handleAccountDisabled(AccountDisabledException ex) {
         Map<String, String> error = new HashMap<>();
@@ -31,6 +33,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 
+    // Handles login attempts with deleted accounts
     @ExceptionHandler(AccountDeletedException.class)
     public ResponseEntity<Map<String, String>> handleAccountDeleted(AccountDeletedException ex) {
         Map<String, String> error = new HashMap<>();
@@ -39,6 +42,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
     }
 
+    // Handles illegal arguments in requests - validation errors
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
         Map<String, String> error = new HashMap<>();
@@ -46,6 +50,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    // Handles access denied scenarios - user lacks required permissions
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException ex) {
         Map<String, String> error = new HashMap<>();

@@ -1,4 +1,3 @@
-// src/context/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as AuthService from '../services/AuthService';
 
@@ -58,9 +57,7 @@ export const AuthProvider = ({ children }) => {
     return success;
   };
 
-  /**
-   * Logs out the user and clears the context state.
-   */
+  // Logs out the user and clears the context state.
   const logout = () => {
     AuthService.logout();
     setUser(null);

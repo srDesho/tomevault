@@ -10,7 +10,7 @@ import {
   BookOpenIcon,
   SearchIcon,
   UserGroupIcon,
-  LockClosedIcon // Added for Admin Panel icon
+  LockClosedIcon
 } from '@heroicons/react/outline';
 import { useAuth } from '../../context/AuthContext';
 
@@ -21,36 +21,27 @@ const Header = () => {
   const userMenuRef = useRef(null);
   const mobileMenuRef = useRef(null);
 
-  /**
-   * Closes both mobile and user dropdown menus when a link is clicked.
-   */
+  // Close both mobile and user dropdown menus when a link is clicked
   const handleLinkClick = () => {
     setIsMenuOpen(false);
     setIsUserMenuOpen(false);
   };
 
-  /**
-   * Handles user logout and closes all open menus.
-   */
+  // Handle user logout and close all open menus
   const handleLogoutClick = () => {
     logout();
     setIsMenuOpen(false);
     setIsUserMenuOpen(false);
   };
 
-  /**
-   * Toggles the visibility of the user dropdown menu.
-   */
+  // Toggle the visibility of the user dropdown menu
   const toggleUserMenu = () => {
     setIsUserMenuOpen(!isUserMenuOpen);
   };
 
-  // Region: Accessibility and UX Effects
-  // ---
+  // Accessibility and UX Effects
 
-  /**
-   * Effect to close menus on 'Escape' key press.
-   */
+  // Close menus when Escape key is pressed
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
@@ -63,9 +54,7 @@ const Header = () => {
     return () => document.removeEventListener('keydown', handleEscape);
   }, []);
 
-  /**
-   * Effect to close menus when clicking outside their respective boundaries.
-   */
+  // Close menus when clicking outside their boundaries
   useEffect(() => {
     const handleClickOutside = (event) => {
       // Check for user menu
@@ -83,23 +72,18 @@ const Header = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  /**
-   * Effect to prevent body scrolling when the mobile menu is open (UX enhancement).
-   */
+  // Prevent body scrolling when mobile menu is open for better UX
   useEffect(() => {
     if (isMenuOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
     }
-    // Cleanup function ensures scroll is reset when component unmounts
+    // Cleanup to reset scroll when component unmounts
     return () => {
       document.body.style.overflow = 'unset';
     };
   }, [isMenuOpen]);
-
-  // ---
-  // End Region: Accessibility and UX Effects
 
   const isAdmin = user?.roles?.some(r => ['ADMIN', 'SUPER_ADMIN'].includes(r));
   const userDisplayName = user?.username || 'Usuario';
@@ -118,8 +102,7 @@ const Header = () => {
             >
               TomeVault
             </Link>
-            
-            {/* Primary Navigation - Desktop (Cleaned up: Admin Panel moved to dropdown) */}
+
             <nav className="hidden lg:flex lg:items-center lg:space-x-2 ml-10" aria-label="Main navigation">
               {isAuthenticated() && (
                 <Link 
@@ -148,7 +131,6 @@ const Header = () => {
                 <span>Acerca de</span>
               </Link>
               
-              {/* NOTE: Admin Panel Link REMOVED from main nav for cleaner UI, now in user dropdown. */}
             </nav>
           </div>
 
@@ -199,7 +181,6 @@ const Header = () => {
                   </div>
                   
                   {/* Menu Links */}
-                  {/* Admin Panel Link: MOVED HERE to keep account options grouped. */}
                   {isAdmin && (
                     <Link 
                       to="/admin/users" 

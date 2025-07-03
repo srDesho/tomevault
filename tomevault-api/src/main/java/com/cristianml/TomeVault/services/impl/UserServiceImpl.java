@@ -31,24 +31,26 @@ public class UserServiceImpl implements IUserService {
     private final UserMapper userMapper;
     private final JwtUtils jwtUtils;
 
-    // Retrieves authenticated user's complete profile information.
-    // Maps internal UserEntity to secure UserProfileResponseDTO for client consumption.
+    // Get the complete profile information for the authenticated user
     @Override
     @Transactional(readOnly = true)
     public UserProfileResponseDTO getUserProfile(UserEntity user) {
         return userMapper.toProfileResponse(user);
     }
 
+    // Update user profile information like email and username
     @Override
     public AuthResponse updateUserProfile(UserEntity user, UserProfileUpdateRequestDTO requestDTO) {
 
-        // Validate email uniqueness if user attempts to change email address
+        // Check if email is being changed and validate it's not already taken
         if (requestDTO.getEmail() != null && !requestDTO.getEmail().equals(user.getEmail())) {
             boolean emailExists = this.userRepository.existsByEmail(requestDTO.getEmail());
             if (emailExists) {
                 throw new IllegalArgumentException("Email is already in use by another user");
             }
         }
+
+        // Check if username is being changed and validate it's unique
         if (requestDTO.getUsername() != null && !requestDTO.getUsername().equals(user.getUsername())) {
             boolean usernameExists = this.userRepository.existsByUsername(requestDTO.getUsername());
             if (usernameExists) {
@@ -56,43 +58,48 @@ public class UserServiceImpl implements IUserService {
             }
             user.setUsername(requestDTO.getUsername());
         }
-        // Perform selective field updates using mapper for consistency
+
+        // Update user fields from the request DTO
         this.userMapper.updateEntityFromDto(requestDTO, user);
 
-        // Persist updated user information to database
+        // Save the updated user to database
         UserEntity updatedUser = this.userRepository.save(user);
 
         return this.generateAuthResponseForUser(updatedUser, "Perfil actualizado correctamente.");
     }
 
+    // Change user password with security validations
     @Override
     public AuthResponse changePassword(UserEntity user, ChangePasswordRequestDTO requestDTO) {
 
-        // Validate current password correctness using secure password encoder
+        // Verify current password matches
         if (!passwordEncoder.matches(requestDTO.getCurrentPassword(), user.getPassword())) {
             throw new IllegalArgumentException("Current password is incorrect");
         }
-        // Ensure new password confirmation consistency for user experience
+
+        // Confirm new password matches confirmation
         if (!requestDTO.getNewPassword().equals(requestDTO.getConfirmPassword())) {
             throw new IllegalArgumentException("New passwords do not match");
         }
-        // Prevent password reuse for enhanced security practices
+
+        // Prevent using the same password as current one
         if (passwordEncoder.matches(requestDTO.getNewPassword(), user.getPassword())) {
             throw new IllegalArgumentException("New password must be different from current password");
         }
 
-        // Validate
+        // Validate password strength requirements
         validatePassword(requestDTO.getNewPassword());
 
-        // Set the new password
+        // Encode and set the new password
         user.setPassword(passwordEncoder.encode(requestDTO.getNewPassword()));
         this.userRepository.save(user);
 
         return this.generateAuthResponseForUser(user, "Contraseña actualizada correctamente.");
     }
 
+    // Generate authentication response with new JWT token after profile changes
     private AuthResponse generateAuthResponseForUser(UserEntity user, String message) {
-        // Generate new JWT token to reflect any potential critical changes (like username)
+        // Build authority list from user roles and permissions
         List<SimpleGrantedAuthority> authorityList = new ArrayList<>();
 
         user.getRoleList()
@@ -108,5 +115,4 @@ public class UserServiceImpl implements IUserService {
 
         return new AuthResponse(user.getUsername(), message, newAccessToken, true);
     }
-
 }

@@ -16,11 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * REST Controller for administrative user operations in TomeVault application.
- * Provides endpoints for CRUD operations, role management, and user administration.
- */
-
 @RestController
 @RequestMapping("/admin/users")
 @RequiredArgsConstructor
@@ -29,7 +24,6 @@ public class AdminUserController {
 
     private final IAdminUserService adminUserService;
 
-    // Retrieves a paginated list of all users.
     @GetMapping
     public ResponseEntity<Page<UserProfileResponseDTO>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
@@ -45,14 +39,12 @@ public class AdminUserController {
         return ResponseEntity.ok(users);
     }
 
-    // Retrieves a specific user by ID.
     @GetMapping("/{id}")
     public ResponseEntity<UserProfileResponseDTO> getUserById(@PathVariable("id") Long id) {
         UserProfileResponseDTO user = this.adminUserService.getUserById(id);
         return ResponseEntity.ok(user);
     }
 
-    // Creates a new user in the system.
     @PostMapping
     public ResponseEntity<UserProfileResponseDTO> createUser(@RequestBody @Valid UserCreateRequestDTO createRequestDTO) {
         UserProfileResponseDTO userProfileResponseDTO = this.adminUserService.createUser(createRequestDTO);
@@ -96,7 +88,6 @@ public class AdminUserController {
         }
     }
 
-    // Updates a user's roles.
     @PutMapping("/{id}/roles")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<UserProfileResponseDTO> updateUserRoles(

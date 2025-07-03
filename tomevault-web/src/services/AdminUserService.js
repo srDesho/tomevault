@@ -1,10 +1,6 @@
-import * as AuthService from './AuthService';
+import { BACKEND_BASE_URL, getAuthHeader } from './AuthService';
 
-const BACKEND_BASE_URL = 'http://localhost:8080/api/v1';
-
-/**
- * Helper function to handle API responses and error cases consistently
- */
+// Centralized function to handle API responses and errors consistently
 const handleResponse = async (response) => {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -32,7 +28,7 @@ const handleResponse = async (response) => {
 };
 
 const AdminUserService = {
-  // GET /admin/users
+  // Get paginated list of all users
   getAllUsers: async (page = 0, size = 10, sortBy = 'id', sortDir = 'asc') => {
     const url = new URL(`${BACKEND_BASE_URL}/admin/users`);
     url.searchParams.append('page', page);
@@ -41,13 +37,13 @@ const AdminUserService = {
     url.searchParams.append('sortDir', sortDir);
 
     const response = await fetch(url, {
-      headers: { 'Authorization': AuthService.getAuthHeader() }
+      headers: { 'Authorization': getAuthHeader() }
     });
     
     return handleResponse(response);
   },
 
-  // GET /admin/users/search
+  // Search users by query with pagination
   searchUsers: async (query, page = 0, size = 10, sortBy = 'id', sortDir = 'asc') => {
     const url = new URL(`${BACKEND_BASE_URL}/admin/users/search`);
     url.searchParams.append('query', query);
@@ -57,28 +53,28 @@ const AdminUserService = {
     url.searchParams.append('sortDir', sortDir);
 
     const response = await fetch(url, {
-      headers: { 'Authorization': AuthService.getAuthHeader() }
+      headers: { 'Authorization': getAuthHeader() }
     });
     
     return handleResponse(response);
   },
 
-  // GET /admin/users/{id}
+  // Get specific user details by ID
   getUserById: async (id) => {
     const response = await fetch(`${BACKEND_BASE_URL}/admin/users/${id}`, {
-      headers: { 'Authorization': AuthService.getAuthHeader() }
+      headers: { 'Authorization': getAuthHeader() }
     });
     
     return handleResponse(response);
   },
 
-  // PUT /admin/users/{id}
+  // Update user information
   updateUser: async (id, userData) => {
     const response = await fetch(`${BACKEND_BASE_URL}/admin/users/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': AuthService.getAuthHeader()
+        'Authorization': getAuthHeader()
       },
       body: JSON.stringify(userData)
     });
@@ -86,13 +82,13 @@ const AdminUserService = {
     return handleResponse(response);
   },
 
-  // PUT /admin/users/{id}/roles
+  // Update user roles and permissions
   updateUserRoles: async (id, roleNames) => {
     const response = await fetch(`${BACKEND_BASE_URL}/admin/users/${id}/roles`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': AuthService.getAuthHeader()
+        'Authorization': getAuthHeader()
       },
       body: JSON.stringify({ roleNames })
     });
@@ -100,13 +96,13 @@ const AdminUserService = {
     return handleResponse(response);
   },
 
-  // PUT /admin/users/toggle-status/{id}
+  // Enable or disable user account
   toggleUserStatus: async (id, enabled) => {
     const response = await fetch(`${BACKEND_BASE_URL}/admin/users/toggle-status/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': AuthService.getAuthHeader()
+        'Authorization': getAuthHeader()
       },
       body: JSON.stringify({ enabled })
     });
@@ -114,23 +110,23 @@ const AdminUserService = {
     return handleResponse(response);
   },
 
-  // DELETE /admin/users/{id}
+  // Delete user account permanently
   deleteUser: async (id) => {
     const response = await fetch(`${BACKEND_BASE_URL}/admin/users/${id}`, {
       method: 'DELETE',
-      headers: { 'Authorization': AuthService.getAuthHeader() }
+      headers: { 'Authorization': getAuthHeader() }
     });
     
     return handleResponse(response);
   },
 
-  // PUT /admin/users/{id}/reset-password
+  // Reset user password (admin function)
   resetUserPassword: async (id, newPassword) => {
     const response = await fetch(`${BACKEND_BASE_URL}/admin/users/${id}/reset-password`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': AuthService.getAuthHeader()
+        'Authorization': getAuthHeader()
       },
       body: JSON.stringify({ newPassword })
     });
@@ -138,13 +134,13 @@ const AdminUserService = {
     return handleResponse(response);
   },
 
-  // POST /admin/users
+  // Create new user account
   createUser: async (userData) => {
     const response = await fetch(`${BACKEND_BASE_URL}/admin/users`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': AuthService.getAuthHeader()
+        'Authorization': getAuthHeader()
       },
       body: JSON.stringify(userData)
     });

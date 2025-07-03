@@ -10,11 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * REST Controller for user authentication and registration.
- * Provides endpoints for logging in and signing up, returning JWTs upon success.
- */
-
 @RestController
 @RequestMapping("/auth")
 public class AuthController {

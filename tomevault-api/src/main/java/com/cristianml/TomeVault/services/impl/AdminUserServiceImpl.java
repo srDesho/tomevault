@@ -1,6 +1,5 @@
 package com.cristianml.TomeVault.services.impl;
 
-import static com.cristianml.TomeVault.utilities.Utilities.validatePassword;
 import com.cristianml.TomeVault.dtos.requests.UserCreateRequestDTO;
 import com.cristianml.TomeVault.dtos.requests.UserProfileUpdateRequestDTO;
 import com.cristianml.TomeVault.dtos.responses.UserProfileResponseDTO;
@@ -29,6 +28,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.cristianml.TomeVault.utilities.Utilities.validatePassword;
 
 @Service
 @RequiredArgsConstructor

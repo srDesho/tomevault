@@ -1,6 +1,6 @@
 import { BACKEND_BASE_URL, TOKEN_KEY, getAuthHeader, logout } from './AuthService';
 
-// Fetches the current user's profile information from the backend
+// Get current user's profile data from backend
 export const getUserProfile = async () => {
   const headers = new Headers();
   const authHeader = getAuthHeader();
@@ -31,7 +31,7 @@ export const getUserProfile = async () => {
   }
 };
 
-// Updates the user's profile with new data
+// Update user profile information like email and username
 export const updateUserProfile = async (profileData) => {
   const headers = new Headers();
   const authHeader = getAuthHeader();
@@ -52,7 +52,7 @@ export const updateUserProfile = async (profileData) => {
     if (response.ok) {
       const data = await response.json();
       if (data.jwt) {
-        localStorage.setItem(TOKEN_KEY, data.jwt); // Update the JWT
+        localStorage.setItem(TOKEN_KEY, data.jwt); // Update JWT token with new one
       }
       return { message: 'Perfil actualizado correctamente', ...data };
     } else if (response.status === 401 || response.status === 403) {
@@ -61,7 +61,7 @@ export const updateUserProfile = async (profileData) => {
     } else {
       const errorText = await response.text();
       
-      // Map specific error messages to Spanish
+      // Convert backend error messages to user-friendly Spanish
       let userFriendlyMessage = 'Error al actualizar el perfil de usuario';
       
       if (response.status === 400) {
@@ -86,7 +86,7 @@ export const updateUserProfile = async (profileData) => {
   }
 };
 
-// Changes the user's password
+// Change user password with validation and security checks
 export const changePassword = async (passwordData) => {
   const headers = new Headers();
   const authHeader = getAuthHeader();
@@ -107,12 +107,12 @@ export const changePassword = async (passwordData) => {
     if (response.ok) {
       const data = await response.json();
       if (data.jwt) {
-        localStorage.setItem(TOKEN_KEY, data.jwt);
+        localStorage.setItem(TOKEN_KEY, data.jwt); // Store updated JWT token
       }
       return { message: 'Contraseña cambiada correctamente', ...data };
     }
     
-    // Try to parse JSON error message first
+    // Parse error response to get detailed message
     let errorMessage = '';
     const contentType = response.headers.get('content-type');
     
@@ -125,7 +125,7 @@ export const changePassword = async (passwordData) => {
     
     const errorLower = errorMessage.toLowerCase();
     
-    // ✅ ¡MUEVE esta validación AQUÍ, dentro del bloque 400!
+    // Handle specific password validation errors
     if (response.status === 400) {
       if (errorLower.includes('current password is incorrect')) {
         throw new Error('La contraseña actual es incorrecta');
@@ -142,11 +142,12 @@ export const changePassword = async (passwordData) => {
       throw new Error('Datos de entrada inválidos');
     }
     
+    // Handle authentication errors
     if (response.status === 401) {
-      // Ahora este bloque SOLO se usa si el token es inválido/expirado
       throw new Error('Sesión expirada. Por favor, inicie sesión nuevamente.');
     }
     
+    // Handle server errors
     if (response.status === 500) {
       throw new Error('Error del servidor. Por favor, intente más tarde');
     }

@@ -129,7 +129,7 @@ const UserSettingsPage = () => {
             return;
         }
 
-        // Mostrar confirmación en lugar de enviar directamente
+        // Display confirmation instead of sending directly.
         setPendingProfileData(profileFormData);
         setShowProfileConfirm(true);
     };

@@ -27,7 +27,7 @@ const Pagination = ({
   const startItem = currentPage * itemsPerPage + 1;
   const endItem = Math.min((currentPage + 1) * itemsPerPage, totalItems);
 
-  // Determine correct plural name
+  // Determine correct plural name for Spanish
   const getItemName = (count) => {
     if (!pluralizeItemName) return itemName;
     const singular = itemName.toLowerCase();
