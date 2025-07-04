@@ -1,18 +1,20 @@
-// This component provides a user settings page for updating profile information and changing the password.
-// It consumes the HomeSearchContext to maintain state consistency across different pages.
-
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getUserProfile, updateUserProfile, changePassword } from '../services/UserService';
 import { isAuthenticated } from '../services/AuthService';
 import { useHomeSearch } from '../context/HomeSearchContext';
 import { CheckCircleIcon, XCircleIcon, EyeIcon, EyeOffIcon } from '@heroicons/react/solid';
 import { UserIcon, LockClosedIcon } from '@heroicons/react/outline';
 
+// User settings page for updating profile information and changing password
+// Maintains state consistency across navigation using HomeSearchContext
 const UserSettingsPage = () => {
-    // Consume the context to keep it "alive" during navigation
+    const navigate = useNavigate();
+    const location = useLocation();
+    // Consume context to preserve state during navigation
     const { homeScrollPosition } = useHomeSearch(); 
     
-    // State to hold the user's profile data
+    // State for user profile data and form inputs
     const [userProfile, setUserProfile] = useState(null);
     const [profileFormData, setProfileFormData] = useState({
         username: '',
@@ -23,31 +25,30 @@ const UserSettingsPage = () => {
         birthDate: '',
     });
 
-    // State for the password change form
+    // State for password change form
     const [passwordFormData, setPasswordFormData] = useState({
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
     });
 
-    // Password visibility states
+    // Password visibility toggle states
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    // Field-level validation errors
+    // Field validation error states
     const [profileErrors, setProfileErrors] = useState({});
     const [passwordErrors, setPasswordErrors] = useState({});
 
-    // States for managing UI feedback and authentication status
+    // UI state management
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState(null);
-    const [isAuth, setIsAuth] = useState(isAuthenticated());
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [showProfileConfirm, setShowProfileConfirm] = useState(false);
     const [pendingProfileData, setPendingProfileData] = useState(null);
 
-    // Debug log to confirm context state is preserved
+    // Debug context state preservation
     useEffect(() => {
         console.log('UserSettings - context preserved:', { homeScrollPosition });
     }, [homeScrollPosition]);
@@ -55,11 +56,6 @@ const UserSettingsPage = () => {
     // Fetch user profile data on component mount
     useEffect(() => {
         const fetchProfile = async () => {
-            if (!isAuth) {
-                showToast('error', 'No estás autenticado.');
-                setLoading(false);
-                return;
-            }
             try {
                 setLoading(true);
                 const data = await getUserProfile();
@@ -73,7 +69,8 @@ const UserSettingsPage = () => {
                     birthDate: data.birthDate ? data.birthDate.split('T')[0] : '',
                 });
             } catch (err) {
-                if (error.message === 'Sesión expirada') {
+                if (err.message === 'Sesión expirada' || err.message === 'Sesión Expirada' || err.message === 'Sesión expirada. Por favor, inicie sesión nuevamente.') {
+                    handleSessionExpired();
                     return;
                 }
                 showToast('error', err.message || 'Error al cargar el perfil.');
@@ -81,16 +78,25 @@ const UserSettingsPage = () => {
                 setLoading(false);
             }
         };
+        
         fetchProfile();
-    }, [isAuth]);
+    }, []);
 
-    // Show toast notification with auto-dismiss
+    // Display toast notification with auto-dismiss
     const showToast = (type, message) => {
         setToast({ type, message });
         setTimeout(() => setToast(null), 4000);
     };
 
-    // Handle profile form input changes
+    // Handle session expiration by redirecting to login
+    const handleSessionExpired = () => {
+        showToast('error', 'Tu sesión ha expirado. Redirigiendo al login...');
+        setTimeout(() => {
+            navigate('/login', { state: { from: location.pathname } });
+        }, 1500);
+    };
+
+    // Handle profile form input changes and clear field errors
     const handleProfileChange = (e) => {
         const { name, value } = e.target;
         setProfileFormData((prev) => ({ ...prev, [name]: value }));
@@ -99,9 +105,21 @@ const UserSettingsPage = () => {
         }
     };
 
-    // Validate profile form fields
+    // Validate profile form fields before submission
     const validateProfileForm = () => {
         const errors = {};
+        
+        if (!profileFormData.username.trim()) {
+            errors.username = 'El nombre de usuario es requerido';
+        } else if (profileFormData.username.length < 3 || profileFormData.username.length > 20) {
+            errors.username = 'El nombre de usuario debe tener entre 3 y 20 caracteres';
+        }
+        
+        if (!profileFormData.email.trim()) {
+            errors.email = 'El correo electrónico es requerido';
+        } else if (!/\S+@\S+\.\S+/.test(profileFormData.email)) {
+            errors.email = 'El correo electrónico no es válido';
+        }
         
         if (!profileFormData.firstname.trim()) {
             errors.firstname = 'El nombre es requerido';
@@ -121,7 +139,7 @@ const UserSettingsPage = () => {
         return Object.keys(errors).length === 0;
     };
 
-    // Handle profile form submission
+    // Handle profile form submission with validation
     const handleProfileSubmit = async (e) => {
         e.preventDefault();
         
@@ -129,12 +147,12 @@ const UserSettingsPage = () => {
             return;
         }
 
-        // Display confirmation instead of sending directly.
+        // Store pending data and show confirmation modal
         setPendingProfileData(profileFormData);
         setShowProfileConfirm(true);
     };
 
-    // Confirm profile update
+    // Confirm and execute profile update
     const confirmProfileUpdate = async () => {
         try {
             setLoading(true);
@@ -144,7 +162,10 @@ const UserSettingsPage = () => {
             setShowProfileConfirm(false);
             setPendingProfileData(null);
         } catch (err) {
-            if (error.message === 'Sesión expirada') {
+            if (err.message === 'Sesión expirada' || err.message === 'Sesión Expirada' || err.message === 'Sesión expirada. Por favor, inicie sesión nuevamente.') {
+                setShowProfileConfirm(false);
+                setPendingProfileData(null);
+                handleSessionExpired();
                 return;
             }
             showToast('error', err.message || 'Error al actualizar el perfil');
@@ -153,7 +174,7 @@ const UserSettingsPage = () => {
         }
     };
 
-    // Handle password form input changes
+    // Handle password form input changes and clear field errors
     const handlePasswordChange = (e) => {
         const { name, value } = e.target;
         setPasswordFormData((prev) => ({ ...prev, [name]: value }));
@@ -162,7 +183,7 @@ const UserSettingsPage = () => {
         }
     };
 
-    // Validate password form fields
+    // Validate password form fields with security requirements
     const validatePasswordForm = () => {
         const errors = {};
         
@@ -172,8 +193,14 @@ const UserSettingsPage = () => {
         
         if (!passwordFormData.newPassword) {
             errors.newPassword = 'La nueva contraseña es requerida';
-        } else if (passwordFormData.newPassword.length < 6) {
-            errors.newPassword = 'Debe tener al menos 6 caracteres';
+        } else if (passwordFormData.newPassword.length < 8) {
+            errors.newPassword = 'La contraseña debe tener al menos 8 caracteres';
+        } else if (!/(?=.*[A-Z])/.test(passwordFormData.newPassword)) {
+            errors.newPassword = 'La contraseña debe contener al menos una letra mayúscula';
+        } else if (!/(?=.*[a-z])/.test(passwordFormData.newPassword)) {
+            errors.newPassword = 'La contraseña debe contener al menos una letra minúscula';
+        } else if (!/(?=.*[0-9])/.test(passwordFormData.newPassword)) {
+            errors.newPassword = 'La contraseña debe contener al menos un dígito';
         }
         
         if (!passwordFormData.confirmPassword) {
@@ -186,7 +213,7 @@ const UserSettingsPage = () => {
         return Object.keys(errors).length === 0;
     };
 
-    // Handle password form submission
+    // Handle password form submission with validation
     const handlePasswordSubmit = async (e) => {
         e.preventDefault();
         
@@ -205,7 +232,9 @@ const UserSettingsPage = () => {
             });
             setShowPasswordModal(false);
         } catch (err) {
-            if (error.message === 'Sesión expirada') {
+            if (err.message === 'Sesión expirada' || err.message === 'Sesión Expirada' || err.message === 'Sesión expirada. Por favor, inicie sesión nuevamente.') {
+                setShowPasswordModal(false);
+                handleSessionExpired();
                 return;
             }
             showToast('error', err.message || 'Error al cambiar la contraseña');
@@ -233,7 +262,7 @@ const UserSettingsPage = () => {
                     Ajustes del Usuario
                 </h2>
 
-                {/* Toast notification - appears in top right corner */}
+                {/* Toast notification for user feedback */}
                 {toast && (
                     <div className={`fixed top-20 right-4 z-50 p-4 rounded-lg shadow-2xl flex items-center gap-3 animate-slide-in max-w-md ${
                         toast.type === 'success' 
@@ -250,7 +279,7 @@ const UserSettingsPage = () => {
                 )}
 
                 <div className="space-y-6">
-                    {/* Profile information section */}
+                    {/* Profile information section with form */}
                     <section className="bg-gray-800 p-4 sm:p-6 rounded-lg shadow-xl border border-gray-700">
                         <div className="flex items-center gap-3 mb-4">
                             <UserIcon className="h-5 w-5 text-blue-400" />
@@ -261,7 +290,7 @@ const UserSettingsPage = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="username" className="block text-xs sm:text-sm font-medium mb-1 text-gray-300">
-                                        Nombre de Usuario
+                                        Nombre de Usuario <span className="text-red-400">*</span>
                                     </label>
                                     <input 
                                         type="text" 
@@ -269,14 +298,19 @@ const UserSettingsPage = () => {
                                         name="username" 
                                         value={profileFormData.username} 
                                         onChange={handleProfileChange} 
-                                        className="w-full p-2 sm:p-3 text-sm rounded-lg bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                                        className={`w-full p-2 sm:p-3 text-sm rounded-lg bg-gray-700 border ${
+                                            profileErrors.username ? 'border-red-500' : 'border-gray-600'
+                                        } text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
                                         disabled={loading}
                                     />
+                                    {profileErrors.username && (
+                                        <p className="text-red-400 text-xs mt-1">{profileErrors.username}</p>
+                                    )}
                                 </div>
                                 
                                 <div>
                                     <label htmlFor="email" className="block text-xs sm:text-sm font-medium mb-1 text-gray-300">
-                                        Correo Electrónico
+                                        Correo Electrónico <span className="text-red-400">*</span>
                                     </label>
                                     <input 
                                         type="email" 
@@ -284,9 +318,14 @@ const UserSettingsPage = () => {
                                         name="email" 
                                         value={profileFormData.email} 
                                         onChange={handleProfileChange} 
-                                        className="w-full p-2 sm:p-3 text-sm rounded-lg bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                                        className={`w-full p-2 sm:p-3 text-sm rounded-lg bg-gray-700 border ${
+                                            profileErrors.email ? 'border-red-500' : 'border-gray-600'
+                                        } text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
                                         disabled={loading}
                                     />
+                                    {profileErrors.email && (
+                                        <p className="text-red-400 text-xs mt-1">{profileErrors.email}</p>
+                                    )}
                                 </div>
                             </div>
 
@@ -381,7 +420,7 @@ const UserSettingsPage = () => {
                         </form>
                     </section>
 
-                    {/* Security section with password change button */}
+                    {/* Security section with password change functionality */}
                     <section className="bg-gray-800 p-4 sm:p-6 rounded-lg shadow-xl border border-gray-700">
                         <div className="flex items-center gap-3 mb-4">
                             <LockClosedIcon className="h-5 w-5 text-green-400" />
@@ -403,7 +442,7 @@ const UserSettingsPage = () => {
                     </section>
                 </div>
 
-                {/* Profile confirmation modal */}
+                {/* Profile update confirmation modal */}
                 {showProfileConfirm && (
                     <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-3 sm:p-4 z-50">
                         <div className="bg-gray-800 p-4 sm:p-6 rounded-lg shadow-2xl border border-gray-700 max-w-md w-full mx-2">

@@ -21,7 +21,7 @@ public class UserRequestDTO {
     private String username;
 
     @NotBlank(message = "Password cannot be blank")
-    private String password; // Contraseña en texto plano para el registro
+    private String password;
 
     @NotBlank(message = "First name cannot be blank")
     private String firstname;
