@@ -1,5 +1,5 @@
 // Base URL for the backend API.
-export const BACKEND_BASE_URL = import.meta.env.REACT_APP_BACKEND_URL || 'http://localhost:8080/api/v1';
+export const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080/api/v1';
 
 // Key for storing the JWT in localStorage.
 export const TOKEN_KEY = 'jwtToken';
