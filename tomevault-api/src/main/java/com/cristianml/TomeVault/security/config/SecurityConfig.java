@@ -74,12 +74,14 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         // Allow requests from our frontend - change this to your actual domain in production
         configuration.setAllowedOrigins(List.of(
-                "http://localhost:3000",
+                "http://localhost:5173",
                 "http://localhost:3000",
                 "https://tomevault.netlify.app")); // React dev server port
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")); // Allowed HTTP methods
         configuration.setAllowedHeaders(List.of("*")); // Allow all headers
         configuration.setAllowCredentials(true); // Important for sending cookies/auth tokens
+        configuration.setMaxAge(3600L); // Cache preflight for 1 hour
+        
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration); // Apply to all routes
         return source;
