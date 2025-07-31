@@ -51,7 +51,7 @@ public class AdminUserServiceImpl implements IAdminUserService {
     @Override
     @Transactional(readOnly = true)
     public Page<UserProfileResponseDTO> getAllUsers(Pageable pageable) {
-        Page<UserEntity> users = this.userRepository.findAll(pageable);
+        Page<UserEntity> users = this.userRepository.findByDeletedFalse(pageable);
         return users.map(userMapper::toProfileResponse);
     }
 
@@ -227,7 +227,7 @@ public class AdminUserServiceImpl implements IAdminUserService {
     @Override
     public Page<UserProfileResponseDTO> searchUsers(String query, Pageable pageable) {
         Page<UserEntity> users = this.userRepository
-                .findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCase(query, query, pageable);
+                .searchNonDeletedUsers(query, pageable);
         return users.map(userMapper::toProfileResponse);
     }
 

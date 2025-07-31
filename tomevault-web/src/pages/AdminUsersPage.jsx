@@ -2,7 +2,7 @@
 // sort, activate/deactivate, reset password, and delete users.
 // It uses the AdminUsersContext for search and pagination state persistence across navigation.
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import AdminUserService from '../services/AdminUserService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { useNavigate } from 'react-router-dom';
@@ -17,8 +17,7 @@ import {
     TrashIcon, 
     LockClosedIcon,
     CheckCircleIcon,
-    XCircleIcon,
-    ShieldExclamationIcon
+    XCircleIcon
 } from '@heroicons/react/outline';
 
 // Import Pagination component
@@ -44,7 +43,6 @@ const AdminUsersPage = () => {
     } = useAdminUsersSearch();
     
     // Core state management
-    const [allUsers, setAllUsers] = useState([]);
     const [displayUsers, setDisplayUsers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [toast, setToast] = useState(null);
@@ -61,11 +59,11 @@ const AdminUsersPage = () => {
     const [deleteConfirmModal, setDeleteConfirmModal] = useState(null);
     const [toggleStatusModal, setToggleStatusModal] = useState(null);
     
-    const SEARCH_SIZE = 10;
+    const USERS_PER_PAGE = 10;
     
     // Refs for behavior control
     const isInitialLoad = useRef(true);
-    const previousSearchTerm = useRef(adminSearchTerm);
+    const searchTimeoutRef = useRef(null);
 
     // Permission management logic
     const isSuperAdmin = currentUser?.roles?.includes('SUPER_ADMIN');
@@ -112,53 +110,110 @@ const AdminUsersPage = () => {
         setTimeout(() => setToast(null), 4000);
     };
 
-    // Load all users for local filtering and pagination (filters deleted users)
-    const loadAllUsersForDisplay = useCallback(async () => {
+    /**
+     * Loads paginated users from the server with optional search query
+     * Optimized for Neon PostgreSQL Free Tier with paginated requests
+     */
+    const loadPaginatedUsers = useCallback(async (page, searchQuery = '') => {
+        setIsLoading(true);
+        
         try {
-            const allUsersData = await AdminUserService.getAllUsers(0, 1000, sortBy, sortDir);
-            const users = allUsersData.content || [];
-            const nonDeletedUsers = users.filter(user => !user.deleted);
-            setAllUsers(nonDeletedUsers);
-            return nonDeletedUsers;
+            let response;
+            
+            if (searchQuery.trim()) {
+                // Use backend search endpoint for filtered results
+                response = await AdminUserService.searchUsers(
+                    searchQuery.trim(), 
+                    page, 
+                    USERS_PER_PAGE, 
+                    sortBy, 
+                    sortDir
+                );
+            } else {
+                // Use paginated endpoint for all non-deleted users
+                response = await AdminUserService.getAllUsers(
+                    page, 
+                    USERS_PER_PAGE, 
+                    sortBy, 
+                    sortDir
+                );
+            }
+            
+            setDisplayUsers(response.content || []);
+            setTotalPages(response.totalPages || 0);
+            setTotalElements(response.totalElements || 0);
+            setIsAdminSearchActive(searchQuery.trim().length > 0);
+            
         } catch (error) {
             if (error.message === 'Sesión expirada') {
-                return [];
+                return;
             }
-            console.error("Error loading all users:", error);
-            setAllUsers([]);
-            return [];
+            console.error("Error loading users:", error);
+            showToast('error', 'Error al cargar usuarios');
+            setDisplayUsers([]);
+        } finally {
+            setIsLoading(false);
         }
-    }, [sortBy, sortDir]);
+    }, [sortBy, sortDir, setIsAdminSearchActive]);
 
-    // Memoized filtering logic based on allUsers and the search term
-    const filteredUsers = useMemo(() => {
-        if (!adminSearchTerm.trim() || allUsers.length === 0) {
-            return allUsers;
-        }
-
-        const lowerCaseSearchTerm = adminSearchTerm.toLowerCase();
-
-        return allUsers.filter(user => 
-            user.username?.toLowerCase().includes(lowerCaseSearchTerm) ||
-            user.email?.toLowerCase().includes(lowerCaseSearchTerm) ||
-            (user.roles && user.roles.some(role => 
-                role.toLowerCase().includes(lowerCaseSearchTerm)
-            ))
-        );
-    }, [allUsers, adminSearchTerm]);
-
-    // Effect to detect when search is active
+    // Initial data loading
     useEffect(() => {
-        setIsAdminSearchActive(adminSearchTerm.trim().length > 0);
-    }, [adminSearchTerm, setIsAdminSearchActive]);
+        const loadInitial = async () => {
+            await loadPaginatedUsers(adminCurrentPage, '');
+            isInitialLoad.current = false;
+        };
+        loadInitial();
+    }, []);
 
-    // Effect to reset search page when the search term changes
+    // Debounced search effect with 500ms delay to prevent excessive requests
     useEffect(() => {
-        if (!isInitialLoad.current && isAdminSearchActive && adminSearchTerm !== previousSearchTerm.current) {
-            setAdminSearchPage(0);
+        if (isInitialLoad.current) return;
+
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
         }
-        previousSearchTerm.current = adminSearchTerm;
-    }, [adminSearchTerm, isAdminSearchActive, setAdminSearchPage]);
+
+        searchTimeoutRef.current = setTimeout(() => {
+            const searchQuery = adminSearchTerm.trim();
+            
+            if (searchQuery) {
+                // Reset to first page when search term changes
+                setAdminSearchPage(0);
+                loadPaginatedUsers(0, searchQuery);
+            } else {
+                // Load normal paginated view when search is cleared
+                loadPaginatedUsers(adminCurrentPage, '');
+            }
+        }, 500);
+
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
+            }
+        };
+    }, [adminSearchTerm, loadPaginatedUsers, adminCurrentPage, setAdminSearchPage]);
+
+    // Handle page change for non-search view
+    useEffect(() => {
+        if (!isInitialLoad.current && !adminSearchTerm.trim()) {
+            loadPaginatedUsers(adminCurrentPage, '');
+        }
+    }, [adminCurrentPage, adminSearchTerm, loadPaginatedUsers]);
+
+    // Handle page change for search view
+    useEffect(() => {
+        if (!isInitialLoad.current && adminSearchTerm.trim()) {
+            loadPaginatedUsers(adminSearchPage, adminSearchTerm);
+        }
+    }, [adminSearchPage, adminSearchTerm, loadPaginatedUsers]);
+
+    // Handle sort change - reload data with new sorting
+    useEffect(() => {
+        if (!isInitialLoad.current) {
+            const currentPage = adminSearchTerm.trim() ? adminSearchPage : adminCurrentPage;
+            loadPaginatedUsers(currentPage, adminSearchTerm);
+        }
+    }, [sortBy, sortDir, adminSearchTerm, adminCurrentPage, adminSearchPage, loadPaginatedUsers]);
 
     // Effect to save scroll position
     useEffect(() => {
@@ -176,76 +231,6 @@ const AdminUsersPage = () => {
             clearTimeout(scrollTimer);
         };
     }, [setAdminScrollPosition]);
-
-    // Initial data loading
-    useEffect(() => {
-        const loadInitialData = async () => {
-            setIsLoading(true);
-            setScrollRestored(false);
-            
-            const allUsersData = await loadAllUsersForDisplay();
-            
-            if (isAdminSearchActive && adminSearchTerm) {
-                const currentFilteredUsers = allUsersData.filter(user =>
-                    user.username?.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
-                    user.email?.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
-                    (user.roles && user.roles.some(role => 
-                        role.toLowerCase().includes(adminSearchTerm.toLowerCase())
-                    ))
-                );
-
-                const start = adminSearchPage * SEARCH_SIZE;
-                const end = start + SEARCH_SIZE;
-                const paginatedResults = currentFilteredUsers.slice(start, end);
-
-                setDisplayUsers(paginatedResults);
-                setTotalPages(Math.ceil(currentFilteredUsers.length / SEARCH_SIZE));
-                setTotalElements(currentFilteredUsers.length);
-            } else {
-                const start = adminCurrentPage * SEARCH_SIZE;
-                const end = start + SEARCH_SIZE;
-                const paginatedResults = allUsersData.slice(start, end);
-                
-                setDisplayUsers(paginatedResults);
-                setTotalPages(Math.ceil(allUsersData.length / SEARCH_SIZE));
-                setTotalElements(allUsersData.length);
-            }
-            
-            isInitialLoad.current = false;
-            setIsLoading(false);
-        };
-        
-        loadInitialData();
-    }, []);
-
-    // Updates displayed users when filters or pagination states change
-    useEffect(() => {
-        if (!isInitialLoad.current && allUsers.length > 0) {
-            if (isAdminSearchActive && adminSearchTerm) {
-                const start = adminSearchPage * SEARCH_SIZE;
-                const end = start + SEARCH_SIZE;
-                const paginatedResults = filteredUsers.slice(start, end);
-                setDisplayUsers(paginatedResults);
-                setTotalPages(Math.ceil(filteredUsers.length / SEARCH_SIZE));
-                setTotalElements(filteredUsers.length);
-                setIsLoading(false);
-            } else if (!isAdminSearchActive) {
-                const start = adminCurrentPage * SEARCH_SIZE;
-                const end = start + SEARCH_SIZE;
-                const paginatedResults = allUsers.slice(start, end);
-                setDisplayUsers(paginatedResults);
-                setTotalPages(Math.ceil(allUsers.length / SEARCH_SIZE));
-                setTotalElements(allUsers.length);
-            }
-        }
-    }, [
-        adminSearchTerm,
-        isAdminSearchActive,
-        filteredUsers,
-        allUsers,
-        adminCurrentPage,
-        adminSearchPage
-    ]);
 
     // Restores scroll position after loading
     useEffect(() => {
@@ -265,23 +250,12 @@ const AdminUsersPage = () => {
     
     // Handles changing the page number for both search and non-search views
     const handlePageChange = (newPage) => {
-        if (isAdminSearchActive && adminSearchTerm) {
+        if (adminSearchTerm.trim()) {
             setAdminSearchPage(newPage);
-            const start = newPage * SEARCH_SIZE;
-            const end = start + SEARCH_SIZE;
-            const paginatedResults = filteredUsers.slice(start, end);
-            setDisplayUsers(paginatedResults);
-            window.scrollTo(0, 0);
         } else {
             setAdminCurrentPage(newPage);
-            const start = newPage * SEARCH_SIZE;
-            const end = start + SEARCH_SIZE;
-            const paginatedResults = allUsers.slice(start, end);
-            setDisplayUsers(paginatedResults);
-            setHomeScrollPosition(0);
-            setScrollRestored(true);
-            window.scrollTo(0, 0);
         }
+        window.scrollTo(0, 0);
     };
 
     // Handles sorting table columns
@@ -292,8 +266,6 @@ const AdminUsersPage = () => {
             setSortBy(field);
             setSortDir('asc');
         }
-        
-        loadAllUsersForDisplay();
     };
 
     // Navigation handler for user editing with permission check
@@ -344,17 +316,13 @@ const AdminUsersPage = () => {
         try {
             await AdminUserService.toggleUserStatus(user.id, newEnabledStatus);
             
-            const updateState = (prev) => 
-                prev.map(u => u.id === user.id ? { ...u, enabled: newEnabledStatus } : u);
-
-            setAllUsers(updateState);
-            setDisplayUsers(updateState);
+            setDisplayUsers(prev => 
+                prev.map(u => u.id === user.id ? { ...u, enabled: newEnabledStatus } : u)
+            );
             
             showToast('success', `Usuario ${newEnabledStatus ? 'activado' : 'desactivado'} correctamente.`);
-        } catch (err) {
-            if (error.message === 'Sesión expirada') {
-                return [];
-            }
+        } catch (error) {
+            if (error.message === 'Sesión expirada') return;
             showToast('error', 'Error al actualizar estado del usuario.');
         } finally {
             setToggleStatusModal(null);
@@ -385,11 +353,9 @@ const AdminUsersPage = () => {
             showToast('success', 'Contraseña restablecida.');
             setNewPassword('');
             setPasswordError('');
-        } catch (err) {
-            if (error.message === 'Sesión expirada') {
-                return [];
-            }
-            const errorText = err.message || 'Error al restablecer contraseña.';
+        } catch (error) {
+            if (error.message === 'Sesión expirada') return;
+            const errorText = error.message || 'Error al restablecer contraseña.';
             showToast('error', errorText);
         }
 
@@ -401,51 +367,28 @@ const AdminUsersPage = () => {
         try {
             await AdminUserService.deleteUser(userId);
             
-            const updatedAllUsers = await loadAllUsersForDisplay();
+            const currentPage = adminSearchTerm.trim() ? adminSearchPage : adminCurrentPage;
+            const searchQuery = adminSearchTerm.trim();
             
-            if (isAdminSearchActive && adminSearchTerm) {
-                const newFiltered = updatedAllUsers.filter(user =>
-                    user.username?.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
-                    user.email?.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
-                    (user.roles && user.roles.some(role => 
-                        role.toLowerCase().includes(adminSearchTerm.toLowerCase())
-                    ))
-                );
+            // If deleting the last user on a page, navigate to previous page
+            if (displayUsers.length === 1 && currentPage > 0) {
+                const newPage = Math.max(0, currentPage - 1);
                 
-                const totalFiltered = newFiltered.length;
-                const newTotalPages = Math.ceil(totalFiltered / SEARCH_SIZE);
-                const safePage = Math.min(adminSearchPage, Math.max(0, newTotalPages - 1));
-                
-                if (safePage !== adminSearchPage) {
-                    setAdminSearchPage(safePage);
+                if (searchQuery) {
+                    setAdminSearchPage(newPage);
+                    await loadPaginatedUsers(newPage, searchQuery);
+                } else {
+                    setAdminCurrentPage(newPage);
+                    await loadPaginatedUsers(newPage, '');
                 }
-
-                const start = safePage * SEARCH_SIZE;
-                const end = start + SEARCH_SIZE;
-                setDisplayUsers(newFiltered.slice(start, end));
-                setTotalPages(newTotalPages);
-                setTotalElements(totalFiltered);
             } else {
-                const totalUsers = updatedAllUsers.length;
-                const newTotalPages = Math.ceil(totalUsers / SEARCH_SIZE);
-                const safePage = Math.min(adminCurrentPage, Math.max(0, newTotalPages - 1));
-                
-                if (safePage !== adminCurrentPage) {
-                    setAdminCurrentPage(safePage);
-                }
-                
-                const start = safePage * SEARCH_SIZE;
-                const end = start + SEARCH_SIZE;
-                setDisplayUsers(updatedAllUsers.slice(start, end));
-                setTotalPages(newTotalPages);
-                setTotalElements(totalUsers);
+                // Otherwise reload current page
+                await loadPaginatedUsers(currentPage, searchQuery);
             }
             
             showToast('success', 'Usuario eliminado correctamente.');
-        } catch (err) {
-            if (error.message === 'Sesión expirada') {
-                return [];
-            }
+        } catch (error) {
+            if (error.message === 'Sesión expirada') return;
             showToast('error', 'Error al eliminar usuario.');
         }
         setDeleteConfirmModal(null);
@@ -453,18 +396,17 @@ const AdminUsersPage = () => {
 
     // Generates the user count text for the header
     const getUserCountText = () => {
-        if (isAdminSearchActive && adminSearchTerm) {
-            const total = filteredUsers.length;
-            const start = adminSearchPage * SEARCH_SIZE + 1;
-            const end = Math.min((adminSearchPage + 1) * SEARCH_SIZE, total);
-            return `${start}-${end} de ${total} usuarios encontrados`;
+        const currentPage = adminSearchTerm.trim() ? adminSearchPage : adminCurrentPage;
+        const start = currentPage * USERS_PER_PAGE + 1;
+        const end = Math.min((currentPage + 1) * USERS_PER_PAGE, totalElements);
+        
+        if (adminSearchTerm.trim()) {
+            return `${start}-${end} de ${totalElements} usuarios encontrados`;
         }
-        const start = adminCurrentPage * SEARCH_SIZE + 1;
-        const end = Math.min((adminCurrentPage + 1) * SEARCH_SIZE, totalElements);
         return `${start}-${end} de ${totalElements} usuarios en total`;
     };
 
-    if (isLoading && displayUsers.length === 0) {
+    if (isLoading && isInitialLoad.current) {
         return <LoadingSpinner />;
     }
 
@@ -475,7 +417,7 @@ const AdminUsersPage = () => {
                 <span className="block text-sm sm:text-base lg:text-lg text-gray-300 mt-1 sm:mt-0 sm:ml-2 break-words">
                     ({getUserCountText()})
                 </span>
-                {isAdminSearchActive && adminSearchTerm && (
+                {adminSearchTerm.trim() && (
                     <span className="block text-xs sm:text-sm text-gray-400 mt-2 px-2 break-words">
                         Buscando: "{adminSearchTerm}"
                     </span>
@@ -668,11 +610,11 @@ const AdminUsersPage = () => {
                     {/* Pagination */}
                     {totalPages > 1 && (
                         <Pagination
-                            currentPage={isAdminSearchActive ? adminSearchPage : adminCurrentPage}
+                            currentPage={adminSearchTerm.trim() ? adminSearchPage : adminCurrentPage}
                             totalPages={totalPages}
                             onPageChange={handlePageChange}
                             totalItems={totalElements}
-                            itemsPerPage={SEARCH_SIZE}
+                            itemsPerPage={USERS_PER_PAGE}
                             itemName="usuario"
                         />
                     )}

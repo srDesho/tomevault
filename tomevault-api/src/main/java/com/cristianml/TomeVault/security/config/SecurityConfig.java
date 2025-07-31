@@ -59,6 +59,7 @@ public class SecurityConfig {
                 .httpBasic(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(http -> http
+                        .requestMatchers(HttpMethod.GET, "/health").permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/sign-up").permitAll()
                         .requestMatchers("/books/search-google").permitAll()
                         .requestMatchers("/books/google-api/**").permitAll()
