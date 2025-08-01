@@ -268,16 +268,13 @@ const HomePage = ({ refreshBooks }) => {
             const end = Math.min((searchPage + 1) * SEARCH_SIZE, total);
             return `${start}-${end} de ${total} libros encontrados`;
         }
-        return `${totalElements} libro${totalElements !== 1 ? 's' : ''} en total`;
+        return `${totalElements} libro${totalElements !== 1 ? 's' : ''}`;
     };
 
     return (
         <div className="w-full px-2 sm:px-4 max-w-full overflow-x-hidden">
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-4 sm:mb-6 lg:mb-8 text-center px-2 leading-tight">
                 <span className="block sm:inline break-words">Mis Libros</span>
-                <span className="block text-sm sm:text-base lg:text-lg text-gray-300 mt-1 sm:mt-0 sm:ml-2 break-words">
-                    ({getBookCountText()})
-                </span>
                 {isSearchActive && homeSearchTerm && (
                     <span className="block text-xs sm:text-sm text-gray-400 mt-2 px-2 break-words">
                         Buscando: "{homeSearchTerm}"

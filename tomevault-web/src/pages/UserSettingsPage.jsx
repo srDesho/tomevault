@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { getUserProfile, updateUserProfile, changePassword } from '../services/UserService';
 import { isAuthenticated } from '../services/AuthService';
 import { useHomeSearch } from '../context/HomeSearchContext';
+import { useAuth } from '../context/AuthContext';
 import { CheckCircleIcon, XCircleIcon, EyeIcon, EyeOffIcon } from '@heroicons/react/solid';
 import { UserIcon, LockClosedIcon } from '@heroicons/react/outline';
 
@@ -12,7 +13,8 @@ const UserSettingsPage = () => {
     const navigate = useNavigate();
     const location = useLocation();
     // Consume context to preserve state during navigation
-    const { homeScrollPosition } = useHomeSearch(); 
+    const { homeScrollPosition } = useHomeSearch();
+    const { updateUserProfile: updateAuthProfile } = useAuth();
     
     // State for user profile data and form inputs
     const [userProfile, setUserProfile] = useState(null);
@@ -158,6 +160,7 @@ const UserSettingsPage = () => {
             setLoading(true);
             const response = await updateUserProfile(pendingProfileData);
             showToast('success', response.message || 'Perfil actualizado correctamente');
+            updateAuthProfile(pendingProfileData);
             setUserProfile((prev) => ({ ...prev, ...pendingProfileData }));
             setShowProfileConfirm(false);
             setPendingProfileData(null);

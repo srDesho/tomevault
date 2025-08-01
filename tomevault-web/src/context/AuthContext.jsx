@@ -57,6 +57,18 @@ export const AuthProvider = ({ children }) => {
     return success;
   };
 
+  // Updates the user profile in the context state.
+  const updateUserProfile = (profileData) => {
+    setUser((prevUser) => ({ ...prevUser, ...profileData }));
+    // Also update localStorage to persist the changes
+    const currentProfile = localStorage.getItem('userProfile');
+    if (currentProfile) {
+      const parsedProfile = JSON.parse(currentProfile);
+      const updatedProfile = { ...parsedProfile, ...profileData };
+      localStorage.setItem('userProfile', JSON.stringify(updatedProfile));
+    }
+  };
+
   // Logs out the user and clears the context state.
   const logout = () => {
     AuthService.logout();
@@ -64,7 +76,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: AuthService.isAuthenticated, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: AuthService.isAuthenticated, login, logout, updateUserProfile, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );
