@@ -21,6 +21,9 @@
 
 ## 🖼️ Screenshots
 
+<details>
+<summary>Click to expand</summary>
+
 ### My Books
 ![My Books](docs/screenshots/01-my-books.png)
 *View your personal book collection with reading counts*
@@ -36,6 +39,8 @@
 ### Admin Panel
 ![Admin Users](docs/screenshots/04-admin-users.png)
 *Manage users and their permissions (ADMIN role)*
+
+</details>
 
 ## 🛠️ Tech Stack
 
