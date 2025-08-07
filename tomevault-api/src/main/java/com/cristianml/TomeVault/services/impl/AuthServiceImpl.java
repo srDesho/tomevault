@@ -1,8 +1,10 @@
 package com.cristianml.TomeVault.services.impl;
 
 import com.cristianml.TomeVault.dtos.requests.UserRegistrationRequestDTO;
+import com.cristianml.TomeVault.entities.BookEntity;
 import com.cristianml.TomeVault.entities.UserEntity;
 import com.cristianml.TomeVault.mappers.UserMapper;
+import com.cristianml.TomeVault.repositories.BookRepository;
 import com.cristianml.TomeVault.repositories.RoleRepository;
 import com.cristianml.TomeVault.repositories.UserRepository;
 import com.cristianml.TomeVault.security.dtos.AuthLoginRequest;
@@ -12,6 +14,7 @@ import com.cristianml.TomeVault.security.services.UserDetailsServiceImpl;
 import com.cristianml.TomeVault.services.IAuthService;
 import com.cristianml.TomeVault.utilities.JwtUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -20,9 +23,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -30,6 +35,7 @@ import static com.cristianml.TomeVault.utilities.Utilities.validatePassword;
 
 // Service implementation for authentication-related operations.
 // Handles user login, registration, and JWT token generation
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements IAuthService {
@@ -38,6 +44,7 @@ public class AuthServiceImpl implements IAuthService {
     private final UserMapper userMapper;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final BookRepository bookRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserDetailsServiceImpl userDetailsService;
 
@@ -45,8 +52,12 @@ public class AuthServiceImpl implements IAuthService {
     // Validates username/password combination and sets security context.
     @Override
     public AuthResponse loginUser(AuthLoginRequest authLoginRequest) {
+
         String username = authLoginRequest.getUsernameOrEmail();
         String password = authLoginRequest.getPassword();
+
+        // Reset books from demo user.
+        resetDemoUserBooks(username);
 
         // Authenticate user credentials using Spring Security's UserDetailsService
         Authentication authentication = this.authenticate(username, password);
@@ -143,5 +154,88 @@ public class AuthServiceImpl implements IAuthService {
         // Return authenticated token without exposing sensitive password data
         return new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
+    }
+
+    // Handle user demo limit.
+    @Transactional
+    public void resetDemoUserBooks(String usernameOrEmail) {
+
+        // Verify if is Demo User
+        Optional<UserEntity> userOpt = userRepository.findUserEntityByEmail(usernameOrEmail);
+
+        // If cannot find by email, search by username.
+        if (userOpt.isEmpty()) {
+            userOpt = userRepository.findUserEntityByUsername(usernameOrEmail);
+        }
+
+        // do nothing if not is demo user.
+        if (userOpt.isEmpty()) {
+            log.debug("User not found by email or username: {}", usernameOrEmail);
+            return;
+        }
+
+        UserEntity user = userOpt.get();
+
+        // Active all 5 first books
+        activeDemoBooks(user);
+
+        log.info("Demo Data Cleanup: Starting...");
+
+
+        // Get all books for the demo user (with loaded tags)
+        List<BookEntity> allDemoBooks = bookRepository.findAllByUserWithTags(user);
+
+        if (allDemoBooks.isEmpty()) {
+            log.info("Demo user don't have books.");
+            return;
+        }
+
+        // Keeps the first 5 books (the oldest ones)
+        if (allDemoBooks.size() > 5) {
+            List<BookEntity> booksToDelete = allDemoBooks.subList(5, allDemoBooks.size());
+
+            // to @ElementCollection: first clean tags manually.
+            // This is necessary for avoid FK constraint error.
+            booksToDelete.forEach(book -> {
+                // Clean tag collection.
+                book.getTags().clear();
+                bookRepository.save(book); // Update every book.
+            });
+
+            // Delete books.
+            // Use deleteAll()
+            bookRepository.deleteAll(booksToDelete);
+
+            log.info("Deleted {} books from the demo user. 5 base books were kept.", booksToDelete.size());
+        } else {
+            log.info("Demo user have {} books (<=5). Nothing has been deleted.", allDemoBooks.size());
+        }
+        
+    }
+
+    // Active the 5 first base books from demo user (only if they are inactive).
+    @Transactional
+    public void activeDemoBooks(UserEntity user) {
+        if (!"demo@tomevault.com".equals(user.getEmail())) {
+            return;
+        }
+
+        // Find inactive books from demo user.
+        List<BookEntity> inactiveBooks = bookRepository.findAllByUserAndIsActiveFalse(user);
+
+        // Active maximum 5 books.
+        List<BookEntity> booksToActivate = inactiveBooks.stream()
+                .limit(5)
+                .map(book -> {
+                    book.setActive(true);
+                    log.debug("Activating book: {}", book.getTitle());
+                    return book;
+                })
+                .toList();
+
+        if (!booksToActivate.isEmpty()) {
+            bookRepository.saveAll(booksToActivate);
+            log.info("Activated {} base books for demo user", booksToActivate.size());
+        }
     }
 }

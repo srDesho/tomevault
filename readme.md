@@ -221,7 +221,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 **Cristian Montaño Laime**
 - GitHub: [@srDesho](https://github.com/srDesho)
 - Email: cristianmo775@gmail.com
-- LinkedIn: [Cristian Montaño Laime](https://www.linkedin.com/in/cristian-monta%C3%B1o-laime-7b9379236/)
+- LinkedIn: [Cristian Montaño Laime](https://https://www.linkedin.com/in/cristianmont/)
 
 ## 🙏 Acknowledgments
 

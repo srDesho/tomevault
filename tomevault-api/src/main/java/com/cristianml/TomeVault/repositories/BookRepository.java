@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -38,5 +39,12 @@ public interface BookRepository extends JpaRepository<BookEntity, Long> {
     boolean existsByGoogleBookIdAndUserAndIsActiveTrue(String googleBookId, UserEntity user);
 
     boolean existsByGoogleBookIdAndUserAndIsActiveFalse(String googleBookId, UserEntity userEntity);
+
+    long countByUserAndIsActiveTrue(UserEntity user);
+
+    @Query("SELECT DISTINCT b FROM BookEntity b LEFT JOIN FETCH b.tags WHERE b.user = :user ORDER BY b.addedAt ASC")
+    List<BookEntity> findAllByUserWithTags(@Param("user") UserEntity user);
+
+    List<BookEntity> findAllByUserAndIsActiveFalse(UserEntity user);
 
 }

@@ -3,6 +3,7 @@ package com.cristianml.TomeVault.config;
 import com.cristianml.TomeVault.exceptions.AccessDeniedException;
 import com.cristianml.TomeVault.exceptions.AccountDeletedException;
 import com.cristianml.TomeVault.exceptions.AccountDisabledException;
+import com.cristianml.TomeVault.exceptions.DemoLimitExceededException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -57,5 +58,13 @@ public class GlobalExceptionHandler {
         error.put("message", ex.getMessage());
         error.put("errorCode", "access_denied");
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    // Handles demo user exceeded limit.
+    @ExceptionHandler(DemoLimitExceededException.class)
+    public ResponseEntity<Map<String, String>> handleDemoLimitExceeded(DemoLimitExceededException ex) {
+        Map<String, String> error = new HashMap<>();
+        error.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 }

@@ -7,6 +7,7 @@ import com.cristianml.TomeVault.entities.BookEntity;
 import com.cristianml.TomeVault.entities.UserEntity;
 import com.cristianml.TomeVault.exceptions.BookAlreadyExistsException;
 import com.cristianml.TomeVault.exceptions.BookPreviouslyDeletedException;
+import com.cristianml.TomeVault.exceptions.DemoLimitExceededException;
 import com.cristianml.TomeVault.exceptions.ResourceNotFoundException;
 import com.cristianml.TomeVault.mappers.BookMapper;
 import com.cristianml.TomeVault.repositories.BookRepository;
@@ -154,6 +155,17 @@ public class BookServiceImpl implements IBookService {
     @Override
     @Transactional
     public BookResponseDTO saveBookFromGoogle(String googleBookId, UserEntity user) {
+
+        // Check limit for demo user
+        if (isDemoUser(user)) {
+            long bookCount = bookRepository.countByUserAndIsActiveTrue(user);
+            if (bookCount >= 10) {
+                throw new DemoLimitExceededException(
+                  "Demo user limit reached (maximum 10 books)"
+                );
+            }
+        }
+
         // Check if this book was previously deleted by the user
         Optional<BookEntity> deletedBook = bookRepository.findByGoogleBookIdAndUserAndIsActiveFalse(googleBookId, user);
         if (deletedBook.isPresent()) {
@@ -199,5 +211,10 @@ public class BookServiceImpl implements IBookService {
         if (request.getTags() != null && request.getTags().size() > 10) {
             throw new IllegalArgumentException("Maximum 10 tags allowed");
         }
+    }
+
+    // isDemoUser
+    private boolean isDemoUser(UserEntity user) {
+        return "demo@tomevault.com".equals(user.getEmail());
     }
 }
