@@ -19,24 +19,41 @@ const fetchWithRetry = async (url, options = {}, retries = 3, delay = 1000) => {
         try {
             const response = await fetch(url, newOptions);
             
-            // Check for authentication errors (handled by interceptor)
+            // Check for authentication errors
             if (response.status === 401 || response.status === 403) {
-                throw new Error('Sesión expirada');
+                throw new Error('Session expired: 401 or 403');
             }
             
+            // Check for bad request errors (400)
+            if (response.status === 400) {
+                const errorBody = await response.text(); // Solo leer UNA VEZ
+                
+                // Check if it's a demo limit error
+                if (errorBody.toLowerCase().includes('demo') && 
+                    errorBody.toLowerCase().includes('limit')) {
+                    throw new Error('Demo limit exceeded');
+                }
+                
+                // Other 400 errors
+                throw new Error(`Bad Request: ${errorBody}`);
+            }
+            
+            // Check for other HTTP errors
             if (!response.ok) {
                 const errorBody = await response.text();
-                throw new Error(`Error HTTP! Estado: ${response.status} - ${response.statusText}. Detalles: ${errorBody}`);
+                throw new Error(`HTTP Error ${response.status}: ${errorBody}`);
             }
             
             return await response.json();
+            
         } catch (error) {
-            // Don't retry on authentication errors
-            if (error.message === 'Sesión expirada') {
+            // Don't retry on authentication or demo limit errors
+            if (error.message.includes('Session expired') || 
+                error.message.includes('Demo')) {
                 throw error;
             }
             
-            console.error(`Intento ${i + 1} fallido para ${url}:`, error);
+            console.error(`Attempt ${i + 1} failed for ${url}:`, error);
             if (i < retries - 1) {
                 await new Promise(res => setTimeout(res, delay * Math.pow(2, i)));
             } else {

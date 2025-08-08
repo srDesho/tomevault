@@ -217,13 +217,19 @@ const SearchPage = ({ onAdd, refreshBooks }) => {
                 await refreshBooks(); // Refresh the main book list (e.g., HomePage).
             }
         } catch (error) {
-            // Error handling for authentication/service issues.
-            if (error.message.includes('401') || error.message.includes('403')) {
-                showToast('error', 'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.', () => navigate('/login'));
-            } else {
-                showToast('error', error.message || 'Error al verificar o agregar el libro.');
-            }
-        }
+    // Error handling for authentication/service issues.
+    if (error.message.includes('401') || 
+        error.message.includes('403') || 
+        error.message.includes('Session expired')) {
+        showToast('error', 'Tu sesión ha expirado. Por favor, inicia sesión de nuevo.', () => navigate('/login'));
+    }
+    else if (error.message.includes('Demo limit')) {
+        showToast('error', 'Límite máximo de 10 libros alcanzado para Usuario Demo.');
+    }
+    else {
+        showToast('error', error.message || 'Error al verificar o agregar el libro.');
+    }
+}
     };
 
     // Modal action: Reactivate and keep existing reading progress.
