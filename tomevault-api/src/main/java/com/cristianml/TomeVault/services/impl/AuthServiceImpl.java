@@ -175,6 +175,7 @@ public class AuthServiceImpl implements IAuthService {
         }
 
         UserEntity user = userOpt.get();
+        if (!"demo@tomevault.com".equals(user.getEmail())) return;
 
         // Active all 5 first books
         activeDemoBooks(user);
@@ -210,7 +211,7 @@ public class AuthServiceImpl implements IAuthService {
         } else {
             log.info("Demo user have {} books (<=5). Nothing has been deleted.", allDemoBooks.size());
         }
-        
+
     }
 
     // Active the 5 first base books from demo user (only if they are inactive).
