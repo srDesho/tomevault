@@ -1,9 +1,6 @@
 package com.cristianml.TomeVault.config;
 
-import com.cristianml.TomeVault.exceptions.AccessDeniedException;
-import com.cristianml.TomeVault.exceptions.AccountDeletedException;
-import com.cristianml.TomeVault.exceptions.AccountDisabledException;
-import com.cristianml.TomeVault.exceptions.DemoLimitExceededException;
+import com.cristianml.TomeVault.exceptions.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -65,6 +62,29 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleDemoLimitExceeded(DemoLimitExceededException ex) {
         Map<String, String> error = new HashMap<>();
         error.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    // Handles email or username in use.
+    public ResponseEntity<Map<String, String>> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex) {
+
+        Map<String, String> error = new HashMap<>();
+
+        String message = "Error de integridad de datos";
+
+        // Detect specific unique constraint violations
+        String causeMessage = ex.getMostSpecificCause().getMessage().toLowerCase();
+
+        if (causeMessage.contains("username")) {
+            message = "El nombre de usuario ya está en uso.";
+        } else if (causeMessage.contains("email")) {
+            message = "El correo electrónico ya está registrado.";
+        }
+
+        error.put("message", message);
+        error.put("errorCode", "data_integrity_violation");
+
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 }
