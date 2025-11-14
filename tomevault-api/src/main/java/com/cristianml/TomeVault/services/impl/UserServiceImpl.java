@@ -4,12 +4,14 @@ import com.cristianml.TomeVault.dtos.requests.ChangePasswordRequestDTO;
 import com.cristianml.TomeVault.dtos.requests.UserProfileUpdateRequestDTO;
 import com.cristianml.TomeVault.dtos.responses.UserProfileResponseDTO;
 import com.cristianml.TomeVault.entities.UserEntity;
+import com.cristianml.TomeVault.exceptions.UnauthorizedException;
 import com.cristianml.TomeVault.mappers.UserMapper;
 import com.cristianml.TomeVault.repositories.UserRepository;
 import com.cristianml.TomeVault.security.dtos.AuthResponse;
 import com.cristianml.TomeVault.services.IUserService;
 import com.cristianml.TomeVault.utilities.JwtUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -22,10 +24,12 @@ import java.util.List;
 
 import static com.cristianml.TomeVault.utilities.Utilities.validatePassword;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements IUserService {
 
+    private static final String DEMO_USER_EMAIL = "demo@tomevault.com";
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final UserMapper userMapper;
@@ -42,8 +46,18 @@ public class UserServiceImpl implements IUserService {
     @Override
     public AuthResponse updateUserProfile(UserEntity user, UserProfileUpdateRequestDTO requestDTO) {
 
+        // Not allow to modified demo user.
+        if (isDemoUser(user)) {
+            log.warn("Attempt to modify demo user profile: {}", user.getEmail());
+            throw new UnauthorizedException("Demo user profile cannot be modified.");
+        }
+
         // Check if email is being changed and validate it's not already taken
         if (requestDTO.getEmail() != null && !requestDTO.getEmail().equals(user.getEmail())) {
+            if (DEMO_USER_EMAIL.equals(requestDTO.getEmail())) {
+                throw new UnauthorizedException("Cannot use demo user email");
+            }
+
             boolean emailExists = this.userRepository.existsByEmail(requestDTO.getEmail());
             if (emailExists) {
                 throw new IllegalArgumentException("Email is already in use by another user");
@@ -71,6 +85,12 @@ public class UserServiceImpl implements IUserService {
     // Change user password with security validations
     @Override
     public AuthResponse changePassword(UserEntity user, ChangePasswordRequestDTO requestDTO) {
+
+        // Cannot be change password to demo user.
+        if (isDemoUser(user)) {
+            log.warn("Attempt to change demo user password: {}", user.getEmail());
+            throw new UnauthorizedException("Demo user password cannot be changed");
+        }
 
         // Verify current password matches
         if (!passwordEncoder.matches(requestDTO.getCurrentPassword(), user.getPassword())) {
@@ -114,5 +134,10 @@ public class UserServiceImpl implements IUserService {
         String newAccessToken = this.jwtUtils.createToken(authentication);
 
         return new AuthResponse(user.getUsername(), message, newAccessToken, true);
+    }
+
+    // Helper method to check if user is demo
+    private boolean isDemoUser(UserEntity user) {
+        return DEMO_USER_EMAIL.equals(user.getEmail());
     }
 }

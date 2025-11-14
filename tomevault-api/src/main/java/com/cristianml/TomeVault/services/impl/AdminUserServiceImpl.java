@@ -6,6 +6,7 @@ import com.cristianml.TomeVault.dtos.responses.UserProfileResponseDTO;
 import com.cristianml.TomeVault.entities.UserEntity;
 import com.cristianml.TomeVault.exceptions.AccessDeniedException;
 import com.cristianml.TomeVault.exceptions.ResourceNotFoundException;
+import com.cristianml.TomeVault.exceptions.UnauthorizedException;
 import com.cristianml.TomeVault.mappers.UserMapper;
 import com.cristianml.TomeVault.repositories.RoleRepository;
 import com.cristianml.TomeVault.repositories.UserRepository;
@@ -26,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -35,6 +37,7 @@ import static com.cristianml.TomeVault.utilities.Utilities.validatePassword;
 @RequiredArgsConstructor
 public class AdminUserServiceImpl implements IAdminUserService {
 
+    private static final Object DEMO_USER_EMAIL = "demo@tomevault.com";
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -97,7 +100,7 @@ public class AdminUserServiceImpl implements IAdminUserService {
         UserEntity existingUser = this.userRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("User not found with ID: " + id));
 
-        // Validate permission before updating
+        // Validate permission before updating.
         validatedAdminPermission(currentUser, existingUser);
 
         if (userUpdateRequestDTO.getEmail() != null &&
@@ -126,10 +129,16 @@ public class AdminUserServiceImpl implements IAdminUserService {
     public void softDeleteUserById(Long id) {
 
         UserEntity currentUser = this.getCurrentAuthenticatedUser();
+
         UserEntity userToDelete = this.userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
 
-        // Validate permission before deleting
+        // Cannot delete demo user.
+        if (DEMO_USER_EMAIL.equals(userToDelete.getEmail())) {
+            throw new UnauthorizedException("Cannot deleted demo user.");
+        }
+
+        // Validate permission before deleting.
         validatedAdminPermission(currentUser, userToDelete);
 
         // Soft delete
@@ -146,8 +155,15 @@ public class AdminUserServiceImpl implements IAdminUserService {
     public void hardDeleteUserById(Long id) {
 
         UserEntity currentUser = this.getCurrentAuthenticatedUser();
+
+
         UserEntity targetUser = this.userRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("User not found with ID: " + id));
+
+        // Cannot delete demo user.
+        if (DEMO_USER_EMAIL.equals(targetUser.getEmail())) {
+            throw new UnauthorizedException("Cannot deleted demo user.");
+        }
 
         // Validate permission before hard deleting
         validatedAdminPermission(currentUser, targetUser);
@@ -185,8 +201,14 @@ public class AdminUserServiceImpl implements IAdminUserService {
     public UserProfileResponseDTO resetUserPassword(Long userId, String newRawPassword) {
 
         UserEntity currentUser = this.getCurrentAuthenticatedUser();
+
         UserEntity userToUpdate = this.userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        // Is not allowed to reset demo password
+        if (DEMO_USER_EMAIL.equals(userToUpdate.getEmail())) {
+            throw new UnauthorizedException("Cannot reset password for demo user");
+        }
 
         validatedAdminPermission(currentUser, userToUpdate);
 
@@ -202,8 +224,14 @@ public class AdminUserServiceImpl implements IAdminUserService {
     public UserProfileResponseDTO toggleUserStatus(Long userId, boolean enabled) {
 
         UserEntity currentUser = this.getCurrentAuthenticatedUser();
+
         UserEntity userToUpdate = this.userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        // Is not allowed modified demo user status
+        if (DEMO_USER_EMAIL.equals(userToUpdate.getEmail())) {
+            throw new UnauthorizedException("Cannot modified demo user status");
+        }
 
         // Validate permission before toggling status
         validatedAdminPermission(currentUser, userToUpdate);
@@ -267,4 +295,5 @@ public class AdminUserServiceImpl implements IAdminUserService {
                 () -> new ResourceNotFoundException("Current user not found"));
 
     }
+
 }

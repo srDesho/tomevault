@@ -83,17 +83,17 @@ public class AuthServiceImpl implements IAuthService {
 
         // Validate password confirmation match for security consistency
         if (!password.equals(registrationRequestDTO.getConfirmPassword())) {
-            throw new IllegalArgumentException("Passwords do not match");
+            throw new IllegalArgumentException("Las contraseñas no coinciden.");
         }
 
         // Ensure username uniqueness across the system
         if (userRepository.findUserEntityByUsername(username).isPresent()) {
-            throw new IllegalArgumentException("Username is already taken");
+            throw new IllegalArgumentException("Nombre de usuario ya existente.");
         }
 
         // Ensure email uniqueness across the system
         if (userRepository.findUserEntityByEmail(email).isPresent()) {
-            throw new IllegalArgumentException("Email is already in use");
+            throw new IllegalArgumentException("Correo electrónico ya existente.");
         }
 
         // Retrieve default USER role from database for new registrations
