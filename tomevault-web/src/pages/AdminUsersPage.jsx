@@ -17,7 +17,8 @@ import {
     TrashIcon, 
     LockClosedIcon,
     CheckCircleIcon,
-    XCircleIcon
+    XCircleIcon,
+    ExclamationIcon
 } from '@heroicons/react/outline';
 
 // Import Pagination component
@@ -60,6 +61,7 @@ const AdminUsersPage = () => {
     const [toggleStatusModal, setToggleStatusModal] = useState(null);
     
     const USERS_PER_PAGE = 10;
+    const DEMO_USER_EMAIL = 'demo@tomevault.com';
     
     // Refs for behavior control
     const isInitialLoad = useRef(true);
@@ -70,12 +72,24 @@ const AdminUsersPage = () => {
     const isAdmin = currentUser?.roles?.includes('ADMIN');
 
     /**
+     * Determines if a user is the demo user
+     */
+    const isDemoUser = (user) => {
+        return user.email === DEMO_USER_EMAIL;
+    };
+
+    /**
      * Determines if the current user has permission to modify the target user
-     * SUPER_ADMIN can modify any user
-     * ADMIN can only modify users with USER role
+     * SUPER_ADMIN can modify any user (except demo)
+     * ADMIN can only modify users with USER role (except demo)
      */
     const canModifyUser = (targetUser) => {
-        // SUPER_ADMIN has full access to all users
+        // Demo user cannot be modified by anyone
+        if (isDemoUser(targetUser)) {
+            return false;
+        }
+
+        // SUPER_ADMIN has full access to all non-demo users
         if (isSuperAdmin) {
             return true;
         }
@@ -98,6 +112,9 @@ const AdminUsersPage = () => {
      * Generates tooltip message explaining why a user cannot be modified
      */
     const getDisabledTooltip = (targetUser) => {
+        if (isDemoUser(targetUser)) {
+            return "El usuario demo no puede ser modificado";
+        }
         if (!canModifyUser(targetUser)) {
             return "Los ADMIN no pueden modificar otros ADMIN o SUPER_ADMIN";
         }
@@ -270,6 +287,10 @@ const AdminUsersPage = () => {
 
     // Navigation handler for user editing with permission check
     const handleEditUser = (user) => {
+        if (isDemoUser(user)) {
+            showToast('error', 'El usuario demo no puede ser modificado.');
+            return;
+        }
         if (!canModifyUser(user)) {
             showToast('error', 'No tienes permisos para editar este usuario.');
             return;
@@ -279,6 +300,10 @@ const AdminUsersPage = () => {
 
     // Opens the reset password modal with permission check
     const handleResetPassword = (user) => {
+        if (isDemoUser(user)) {
+            showToast('error', 'No se puede restablecer la contraseña del usuario demo.');
+            return;
+        }
         if (!canModifyUser(user)) {
             showToast('error', 'No tienes permisos para restablecer la contraseña de este usuario.');
             return;
@@ -290,6 +315,10 @@ const AdminUsersPage = () => {
 
     // Opens the toggle status confirmation modal with permission check
     const handleToggleStatusClick = (user) => {
+        if (isDemoUser(user)) {
+            showToast('error', 'No se puede cambiar el estado del usuario demo.');
+            return;
+        }
         if (!canModifyUser(user)) {
             showToast('error', 'No tienes permisos para cambiar el estado de este usuario.');
             return;
@@ -299,6 +328,10 @@ const AdminUsersPage = () => {
 
     // Handles delete click with permission check
     const handleDeleteClick = (user) => {
+        if (isDemoUser(user)) {
+            showToast('error', 'El usuario demo no puede ser eliminado.');
+            return;
+        }
         if (!canModifyUser(user)) {
             showToast('error', 'No tienes permisos para eliminar este usuario.');
             return;
@@ -323,7 +356,7 @@ const AdminUsersPage = () => {
             showToast('success', `Usuario ${newEnabledStatus ? 'activado' : 'desactivado'} correctamente.`);
         } catch (error) {
             if (error.message === 'Sesión expirada') return;
-            showToast('error', 'Error al actualizar estado del usuario.');
+            showToast('error', error.message || 'Error al actualizar estado del usuario.');
         } finally {
             setToggleStatusModal(null);
         }
@@ -389,7 +422,7 @@ const AdminUsersPage = () => {
             showToast('success', 'Usuario eliminado correctamente.');
         } catch (error) {
             if (error.message === 'Sesión expirada') return;
-            showToast('error', 'Error al eliminar usuario.');
+            showToast('error', error.message || 'Error al eliminar usuario.');
         }
         setDeleteConfirmModal(null);
     };
@@ -426,10 +459,14 @@ const AdminUsersPage = () => {
                 <div className={`fixed top-20 right-4 z-50 p-4 rounded-lg shadow-2xl flex items-center gap-3 animate-slide-in max-w-md ${
                     toast.type === 'success' 
                         ? 'bg-green-600 text-white' 
+                        : toast.type === 'warning'
+                        ? 'bg-yellow-600 text-white'
                         : 'bg-red-600 text-white'
                 }`}>
                     {toast.type === 'success' ? (
                         <CheckCircleIcon className="h-6 w-6 flex-shrink-0" />
+                    ) : toast.type === 'warning' ? (
+                        <ExclamationIcon className="h-6 w-6 flex-shrink-0" />
                     ) : (
                         <XCircleIcon className="h-6 w-6 flex-shrink-0" />
                     )}
@@ -491,6 +528,7 @@ const AdminUsersPage = () => {
                             <tbody>
                                 {displayUsers.map((user) => {
                                     const canModify = canModifyUser(user);
+                                    const isDemo = isDemoUser(user);
                                     const disabledTooltip = getDisabledTooltip(user);
                                     
                                     return (
@@ -502,15 +540,20 @@ const AdminUsersPage = () => {
                                         >
                                             <td className="p-3">{user.id}</td>
                                             <td className="p-3">
-                                            <div className="flex items-center gap-2">
-                                                {user.username}
-                                                {!canModify && (
-                                                <LockClosedIcon 
-                                                    className="h-4 w-4 text-yellow-400" 
-                                                    title={disabledTooltip}
-                                                />
-                                                )}
-                                            </div>
+                                                <div className="flex items-center gap-2">
+                                                    {user.username}
+                                                    {isDemo && (
+                                                        <span className="px-2 py-0.5 bg-yellow-600 text-white text-xs rounded-full">
+                                                            DEMO
+                                                        </span>
+                                                    )}
+                                                    {!canModify && !isDemo && (
+                                                        <LockClosedIcon 
+                                                            className="h-4 w-4 text-yellow-400" 
+                                                            title={disabledTooltip}
+                                                        />
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="p-3">{user.email}</td>
                                             <td className="p-3">
@@ -678,96 +721,88 @@ const AdminUsersPage = () => {
                             </button>
                             <button
                                 onClick={() => setResetPasswordModal(null)}
-                                className="bg-gray-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-700 transition text-sm sm:text-base order-1 sm:order-2"
-                            >
-                                Cancelar
-                            </button>
-                        </div>
+                                className="bg-gray-600 text-white px-4 sm:px-6py-2 sm:py-3 rounded-lg hover:bg-gray-700 transition text-sm sm:text-base order-1 sm:order-2"
+>
+Cancelar
+</button>
+</div>
+</div>
+</div>
+)}        {/* Modal: Confirm Toggle Status */}
+        {toggleStatusModal && (
+            <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-3 sm:p-4 z-50">
+                <div className="bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg shadow-2xl max-w-sm w-full text-center mx-2 border border-gray-700">
+                    <h3 className="text-lg sm:text-xl font-bold text-yellow-400 mb-2 break-words">
+                        {toggleStatusModal.enabled ? 'Desactivar Usuario' : 'Activar Usuario'}
+                    </h3>
+                    <p className="text-gray-300 mb-4 sm:mb-6 text-sm sm:text-base break-words">
+                        ¿Estás seguro de {toggleStatusModal.enabled ? 'desactivar' : 'activar'} al usuario 
+                        <strong> "{toggleStatusModal.username}"</strong>?
+                        {toggleStatusModal.enabled 
+                            ? ' El usuario no podrá acceder al sistema hasta que sea reactivado.' 
+                            : ' El usuario podrá acceder al sistema nuevamente.'
+                        }
+                    </p>
+                    <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
+                        <button
+                            onClick={confirmToggleStatus}
+                            className={`${
+                                toggleStatusModal.enabled 
+                                    ? 'bg-yellow-500 hover:bg-yellow-600' 
+                                    : 'bg-green-500 hover:bg-green-600'
+                            } text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition text-sm sm:text-base order-2 sm:order-1`}
+                        >
+                            Sí, {toggleStatusModal.enabled ? 'Desactivar' : 'Activar'}
+                        </button>
+                        <button
+                            onClick={() => setToggleStatusModal(null)}
+                            className="bg-gray-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-700 transition text-sm sm:text-base order-1 sm:order-2"
+                        >
+                            Cancelar
+                        </button>
                     </div>
                 </div>
-            )}
-
-            {/* Modal: Confirm Toggle Status */}
-            {toggleStatusModal && (
-                <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-3 sm:p-4 z-50">
-                    <div className="bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg shadow-2xl max-w-sm w-full text-center mx-2 border border-gray-700">
-                        <h3 className="text-lg sm:text-xl font-bold text-yellow-400 mb-2 break-words">
-                            {toggleStatusModal.enabled ? 'Desactivar Usuario' : 'Activar Usuario'}
-                        </h3>
-                        <p className="text-gray-300 mb-4 sm:mb-6 text-sm sm:text-base break-words">
-                            ¿Estás seguro de {toggleStatusModal.enabled ? 'desactivar' : 'activar'} al usuario 
-                            <strong> "{toggleStatusModal.username}"</strong>?
-                            {toggleStatusModal.enabled 
-                                ? ' El usuario no podrá acceder al sistema hasta que sea reactivado.' 
-                                : ' El usuario podrá acceder al sistema nuevamente.'
-                            }
-                        </p>
-                        <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
-                            <button
-                                onClick={confirmToggleStatus}
-                                className={`${
-                                    toggleStatusModal.enabled 
-                                        ? 'bg-yellow-500 hover:bg-yellow-600' 
-                                        : 'bg-green-500 hover:bg-green-600'
-                                } text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg transition text-sm sm:text-base order-2 sm:order-1`}
-                            >
-                                Sí, {toggleStatusModal.enabled ? 'Desactivar' : 'Activar'}
-                            </button>
-                            <button
-                                onClick={() => setToggleStatusModal(null)}
-                                className="bg-gray-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-700 transition text-sm sm:text-base order-1 sm:order-2"
-                            >
-                                Cancelar
-                            </button>
-                        </div>
+            </div>
+        )}        {/* Modal: Confirm Soft Delete */}
+        {deleteConfirmModal && (
+            <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-3 sm:p-4 z-50">
+                <div className="bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg shadow-2xl max-w-sm w-full text-center mx-2 border border-gray-700">
+                    <h3 className="text-lg sm:text-xl font-bold text-red-400 mb-2 break-words">Eliminar Usuario</h3>
+                    <p className="text-gray-300 mb-4 sm:mb-6 text-sm sm:text-base break-words">
+                        ¿Estás seguro de eliminar a este usuario? 
+                        El usuario será desactivado y no aparecerá en las listas normales.
+                    </p>
+                    <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
+                        <button
+                            onClick={() => handleSoftDelete(deleteConfirmModal)}
+                            className="bg-red-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-red-600 transition text-sm sm:text-base order-2 sm:order-1"
+                        >
+                            Sí, Eliminar
+                        </button>
+                        <button
+                            onClick={() => setDeleteConfirmModal(null)}
+                            className="bg-gray-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-700 transition text-sm sm:text-base order-1 sm:order-2"
+                        >
+                            Cancelar
+                        </button>
                     </div>
                 </div>
-            )}
-
-            {/* Modal: Confirm Soft Delete */}
-            {deleteConfirmModal && (
-                <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-3 sm:p-4 z-50">
-                    <div className="bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg shadow-2xl max-w-sm w-full text-center mx-2 border border-gray-700">
-                        <h3 className="text-lg sm:text-xl font-bold text-red-400 mb-2 break-words">Eliminar Usuario</h3>
-                        <p className="text-gray-300 mb-4 sm:mb-6 text-sm sm:text-base break-words">
-                            ¿Estás seguro de eliminar a este usuario? 
-                            El usuario será desactivado y no aparecerá en las listas normales.
-                        </p>
-                        <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-4">
-                            <button
-                                onClick={() => handleSoftDelete(deleteConfirmModal)}
-                                className="bg-red-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-red-600 transition text-sm sm:text-base order-2 sm:order-1"
-                            >
-                                Sí, Eliminar
-                            </button>
-                            <button
-                                onClick={() => setDeleteConfirmModal(null)}
-                                className="bg-gray-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-gray-700 transition text-sm sm:text-base order-1 sm:order-2"
-                            >
-                                Cancelar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <style jsx>{`
-                @keyframes slide-in {
-                    from {
-                        transform: translateX(100%);
-                        opacity: 0;
-                    }
-                    to {
-                        transform: translateX(0);
-                        opacity: 1;
-                    }
+            </div>
+        )}        <style jsx>{`
+            @keyframes slide-in {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
                 }
-                .animate-slide-in {
-                    animation: slide-in 0.3s ease-out;
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
                 }
-            `}</style>
-        </div>
-    );
-};
-
-export default AdminUsersPage;
+            }
+            .animate-slide-in {
+                animation: slide-in 0.3s ease-out;
+            }
+        `}</style>
+    </div>
+);
+};export default AdminUsersPage;

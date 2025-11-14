@@ -1,11 +1,11 @@
-// Admin page for editing user information with validation and proper error handling
 import React, { useState, useEffect } from 'react';
 import AdminUserService from '../services/AdminUserService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/outline';
+import { CheckCircleIcon, XCircleIcon, ExclamationIcon } from '@heroicons/react/outline';
 
+// Admin page for editing user information with validation and proper error handling
 const EditUserPage = () => {
   const { id } = useParams();
   const { user: currentUser } = useAuth();
@@ -22,6 +22,7 @@ const EditUserPage = () => {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
   const [errors, setErrors] = useState({});
+  const [isDemoUser, setIsDemoUser] = useState(false);
 
   // Show toast notification with auto-dismiss
   const showToast = (type, message) => {
@@ -34,14 +35,19 @@ const EditUserPage = () => {
     const fetchUser = async () => {
       try {
         const userData = await AdminUserService.getUserById(id);
-        // Format birthDate for input (YYYY-MM-DD)
         const formattedDate = userData.birthDate ? userData.birthDate.split('T')[0] : '';
         setUser({
           ...userData,
           birthDate: formattedDate
         });
+        
+        // Check if this is the demo user
+        if (userData.email === 'demo@tomevault.com') {
+          setIsDemoUser(true);
+          showToast('warning', 'Este es el usuario demo. No se puede modificar.');
+        }
       } catch (err) {
-        if (error.message === 'Sesión expirada') {
+        if (err.message === 'Sesión expirada') {
           return;
         }
         showToast('error', 'Error al cargar los datos del usuario.');
@@ -57,7 +63,6 @@ const EditUserPage = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setUser(prev => ({ ...prev, [name]: value }));
-    // Clear error if exists
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
     }
@@ -97,6 +102,12 @@ const EditUserPage = () => {
   // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (isDemoUser) {
+      showToast('error', 'No se puede modificar el usuario demo');
+      return;
+    }
+    
     const newErrors = validate();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -106,10 +117,9 @@ const EditUserPage = () => {
     try {
       await AdminUserService.updateUser(id, user);
       showToast('success', 'Usuario actualizado correctamente');
-      // Redirect after 2 seconds
       setTimeout(() => navigate('/admin/users'), 2000);
     } catch (err) {
-      if (error.message === 'Sesión expirada') {
+      if (err.message === 'Sesión expirada') {
         return;
       }
       const errorText = err.message || 'Error al actualizar el usuario';
@@ -128,15 +138,19 @@ const EditUserPage = () => {
           Editar Usuario
         </h2>
 
-        {/* Toast notification - appears in top right corner */}
+        {/* Toast notification */}
         {toast && (
           <div className={`fixed top-20 right-4 z-50 p-4 rounded-lg shadow-2xl flex items-center gap-3 animate-slide-in max-w-md ${
             toast.type === 'success' 
               ? 'bg-green-600 text-white' 
+              : toast.type === 'warning'
+              ? 'bg-yellow-600 text-white'
               : 'bg-red-600 text-white'
           }`}>
             {toast.type === 'success' ? (
               <CheckCircleIcon className="h-6 w-6 flex-shrink-0" />
+            ) : toast.type === 'warning' ? (
+              <ExclamationIcon className="h-6 w-6 flex-shrink-0" />
             ) : (
               <XCircleIcon className="h-6 w-6 flex-shrink-0" />
             )}
@@ -156,9 +170,10 @@ const EditUserPage = () => {
                 name="username"
                 value={user.username}
                 onChange={handleChange}
+                disabled={isDemoUser}
                 className={`w-full p-2 sm:p-3 text-sm bg-gray-700 text-white border rounded-lg focus:outline-none focus:ring-2 ${
                   errors.username ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'
-                }`}
+                } ${isDemoUser ? 'opacity-50 cursor-not-allowed' : ''}`}
               />
               {errors.username && (
                 <p className="mt-1 text-xs sm:text-sm text-red-400">{errors.username}</p>
@@ -175,9 +190,10 @@ const EditUserPage = () => {
                 name="email"
                 value={user.email}
                 onChange={handleChange}
+                disabled={isDemoUser}
                 className={`w-full p-2 sm:p-3 text-sm bg-gray-700 text-white border rounded-lg focus:outline-none focus:ring-2 ${
                   errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'
-                }`}
+                } ${isDemoUser ? 'opacity-50 cursor-not-allowed' : ''}`}
               />
               {errors.email && (
                 <p className="mt-1 text-xs sm:text-sm text-red-400">{errors.email}</p>
@@ -194,9 +210,10 @@ const EditUserPage = () => {
                 name="firstname"
                 value={user.firstname}
                 onChange={handleChange}
+                disabled={isDemoUser}
                 className={`w-full p-2 sm:p-3 text-sm bg-gray-700 text-white border rounded-lg focus:outline-none focus:ring-2 ${
                   errors.firstname ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'
-                }`}
+                } ${isDemoUser ? 'opacity-50 cursor-not-allowed' : ''}`}
               />
               {errors.firstname && (
                 <p className="mt-1 text-xs sm:text-sm text-red-400">{errors.firstname}</p>
@@ -213,9 +230,10 @@ const EditUserPage = () => {
                 name="lastname"
                 value={user.lastname}
                 onChange={handleChange}
+                disabled={isDemoUser}
                 className={`w-full p-2 sm:p-3 text-sm bg-gray-700 text-white border rounded-lg focus:outline-none focus:ring-2 ${
                   errors.lastname ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'
-                }`}
+                } ${isDemoUser ? 'opacity-50 cursor-not-allowed' : ''}`}
               />
               {errors.lastname && (
                 <p className="mt-1 text-xs sm:text-sm text-red-400">{errors.lastname}</p>
@@ -232,8 +250,11 @@ const EditUserPage = () => {
                 name="address"
                 value={user.address}
                 onChange={handleChange}
+                disabled={isDemoUser}
                 placeholder="Opcional"
-                className="w-full p-2 sm:p-3 text-sm bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full p-2 sm:p-3 text-sm bg-gray-700 text-white border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  isDemoUser ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               />
             </div>
 
@@ -247,9 +268,10 @@ const EditUserPage = () => {
                 name="birthDate"
                 value={user.birthDate}
                 onChange={handleChange}
+                disabled={isDemoUser}
                 className={`w-full p-2 sm:p-3 text-sm bg-gray-700 text-white border rounded-lg focus:outline-none focus:ring-2 ${
                   errors.birthDate ? 'border-red-500 focus:ring-red-500' : 'border-gray-600 focus:ring-blue-500'
-                }`}
+                } ${isDemoUser ? 'opacity-50 cursor-not-allowed' : ''}`}
               />
               {errors.birthDate && (
                 <p className="mt-1 text-xs sm:text-sm text-red-400">{errors.birthDate}</p>
@@ -268,7 +290,10 @@ const EditUserPage = () => {
             </button>
             <button
               type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base order-1 sm:order-2"
+              disabled={isDemoUser}
+              className={`bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 rounded-lg transition-colors text-sm sm:text-base order-1 sm:order-2 ${
+                isDemoUser ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               Guardar Cambios
             </button>

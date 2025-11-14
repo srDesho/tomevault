@@ -31,7 +31,17 @@ const errorMappings = {
   'La contraseña debe tener al menos 8 caracteres de longitud': 'La contraseña debe tener al menos 8 caracteres',
   'La contraseña debe contener al menos una letra mayúscula': 'La contraseña debe contener al menos una letra mayúscula',
   'La contraseña debe contener al menos una letra minúscula': 'La contraseña debe contener al menos una letra minúscula',
-  'La contraseña debe contener al menos un dígito': 'La contraseña debe contener al menos un número'
+  'La contraseña debe contener al menos un dígito': 'La contraseña debe contener al menos un número',
+
+  // Demo user protection messages
+  'Demo user profile cannot be modified': 'El usuario demo no puede ser modificado',
+  'Demo user profile cannot be modified.': 'El usuario demo no puede ser modificado',
+  'Cannot use demo user email': 'No puedes usar el correo del usuario demo',
+  'Demo user password cannot be changed': 'La contraseña del usuario demo no puede ser cambiada',
+  'Cannot deleted demo user': 'El usuario demo no puede ser eliminado',
+  'Cannot deleted demo user.': 'El usuario demo no puede ser eliminado',
+  'Cannot reset password for demo user': 'No se puede restablecer la contraseña del usuario demo',
+  'Cannot modified demo user status': 'No se puede modificar el estado del usuario demo',
 };
 
 // Translates English backend errors to Spanish for user display

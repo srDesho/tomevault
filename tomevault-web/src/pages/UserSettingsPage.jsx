@@ -4,7 +4,7 @@ import { getUserProfile, updateUserProfile, changePassword } from '../services/U
 import { isAuthenticated } from '../services/AuthService';
 import { useHomeSearch } from '../context/HomeSearchContext';
 import { useAuth } from '../context/AuthContext';
-import { CheckCircleIcon, XCircleIcon, EyeIcon, EyeOffIcon } from '@heroicons/react/solid';
+import { CheckCircleIcon, XCircleIcon, EyeIcon, EyeOffIcon, ExclamationIcon } from '@heroicons/react/solid';
 import { UserIcon, LockClosedIcon } from '@heroicons/react/outline';
 
 // User settings page for updating profile information and changing password
@@ -50,6 +50,9 @@ const UserSettingsPage = () => {
     const [showProfileConfirm, setShowProfileConfirm] = useState(false);
     const [pendingProfileData, setPendingProfileData] = useState(null);
 
+    // Demo user detection state
+    const [isDemoUser, setIsDemoUser] = useState(false);
+
     // Debug context state preservation
     useEffect(() => {
         console.log('UserSettings - context preserved:', { homeScrollPosition });
@@ -62,6 +65,13 @@ const UserSettingsPage = () => {
                 setLoading(true);
                 const data = await getUserProfile();
                 setUserProfile(data);
+                
+                // Check if current user is demo account
+                if (data.email === 'demo@tomevault.com') {
+                    setIsDemoUser(true);
+                    showToast('warning', 'Este es un usuario demo. Las modificaciones están deshabilitadas.');
+                }
+                
                 setProfileFormData({
                     username: data.username || '',
                     email: data.email || '',
@@ -145,6 +155,12 @@ const UserSettingsPage = () => {
     const handleProfileSubmit = async (e) => {
         e.preventDefault();
         
+        // Block submission for demo users
+        if (isDemoUser) {
+            showToast('error', 'El usuario demo no puede ser modificado.');
+            return;
+        }
+        
         if (!validateProfileForm()) {
             return;
         }
@@ -220,6 +236,12 @@ const UserSettingsPage = () => {
     const handlePasswordSubmit = async (e) => {
         e.preventDefault();
         
+        // Block password change for demo users
+        if (isDemoUser) {
+            showToast('error', 'El usuario demo no puede cambiar su contraseña.');
+            return;
+        }
+        
         if (!validatePasswordForm()) {
             return;
         }
@@ -246,6 +268,15 @@ const UserSettingsPage = () => {
         }
     };
 
+    // Handle password change button click with demo user check
+    const handlePasswordChangeClick = () => {
+        if (isDemoUser) {
+            showToast('error', 'El usuario demo no puede cambiar su contraseña.');
+            return;
+        }
+        setShowPasswordModal(true);
+    };
+
     if (loading && !userProfile) {
         return (
             <div className="flex justify-center items-center h-screen bg-gray-900">
@@ -270,10 +301,14 @@ const UserSettingsPage = () => {
                     <div className={`fixed top-20 right-4 z-50 p-4 rounded-lg shadow-2xl flex items-center gap-3 animate-slide-in max-w-md ${
                         toast.type === 'success' 
                             ? 'bg-green-600 text-white' 
+                            : toast.type === 'warning'
+                            ? 'bg-yellow-600 text-white'
                             : 'bg-red-600 text-white'
                     }`}>
                         {toast.type === 'success' ? (
                             <CheckCircleIcon className="h-6 w-6 flex-shrink-0" />
+                        ) : toast.type === 'warning' ? (
+                            <ExclamationIcon className="h-6 w-6 flex-shrink-0" />
                         ) : (
                             <XCircleIcon className="h-6 w-6 flex-shrink-0" />
                         )}
@@ -301,10 +336,12 @@ const UserSettingsPage = () => {
                                         name="username" 
                                         value={profileFormData.username} 
                                         onChange={handleProfileChange} 
+                                        disabled={loading || isDemoUser}
                                         className={`w-full p-2 sm:p-3 text-sm rounded-lg bg-gray-700 border ${
                                             profileErrors.username ? 'border-red-500' : 'border-gray-600'
-                                        } text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
-                                        disabled={loading}
+                                        } text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                                            isDemoUser ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
                                     />
                                     {profileErrors.username && (
                                         <p className="text-red-400 text-xs mt-1">{profileErrors.username}</p>
@@ -321,10 +358,12 @@ const UserSettingsPage = () => {
                                         name="email" 
                                         value={profileFormData.email} 
                                         onChange={handleProfileChange} 
+                                        disabled={loading || isDemoUser}
                                         className={`w-full p-2 sm:p-3 text-sm rounded-lg bg-gray-700 border ${
                                             profileErrors.email ? 'border-red-500' : 'border-gray-600'
-                                        } text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
-                                        disabled={loading}
+                                        } text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                                            isDemoUser ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
                                     />
                                     {profileErrors.email && (
                                         <p className="text-red-400 text-xs mt-1">{profileErrors.email}</p>
@@ -343,10 +382,12 @@ const UserSettingsPage = () => {
                                         name="firstname" 
                                         value={profileFormData.firstname} 
                                         onChange={handleProfileChange} 
+                                        disabled={loading || isDemoUser}
                                         className={`w-full p-2 sm:p-3 text-sm rounded-lg bg-gray-700 border ${
                                             profileErrors.firstname ? 'border-red-500' : 'border-gray-600'
-                                        } text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
-                                        disabled={loading}
+                                        } text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                                            isDemoUser ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
                                     />
                                     {profileErrors.firstname && (
                                         <p className="text-red-400 text-xs mt-1">{profileErrors.firstname}</p>
@@ -363,10 +404,12 @@ const UserSettingsPage = () => {
                                         name="lastname" 
                                         value={profileFormData.lastname} 
                                         onChange={handleProfileChange} 
+                                        disabled={loading || isDemoUser}
                                         className={`w-full p-2 sm:p-3 text-sm rounded-lg bg-gray-700 border ${
                                             profileErrors.lastname ? 'border-red-500' : 'border-gray-600'
-                                        } text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
-                                        disabled={loading}
+                                        } text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                                            isDemoUser ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
                                     />
                                     {profileErrors.lastname && (
                                         <p className="text-red-400 text-xs mt-1">{profileErrors.lastname}</p>
@@ -385,8 +428,10 @@ const UserSettingsPage = () => {
                                         name="address" 
                                         value={profileFormData.address} 
                                         onChange={handleProfileChange} 
-                                        className="w-full p-2 sm:p-3 text-sm rounded-lg bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
-                                        disabled={loading}
+                                        disabled={loading || isDemoUser}
+                                        className={`w-full p-2 sm:p-3 text-sm rounded-lg bg-gray-700 border border-gray-600 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                                            isDemoUser ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
                                     />
                                 </div>
                                 
@@ -400,10 +445,12 @@ const UserSettingsPage = () => {
                                         name="birthDate" 
                                         value={profileFormData.birthDate} 
                                         onChange={handleProfileChange} 
+                                        disabled={loading || isDemoUser}
                                         className={`w-full p-2 sm:p-3 text-sm rounded-lg bg-gray-700 border ${
                                             profileErrors.birthDate ? 'border-red-500' : 'border-gray-600'
-                                        } text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors`}
-                                        disabled={loading}
+                                        } text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                                            isDemoUser ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
                                     />
                                     {profileErrors.birthDate && (
                                         <p className="text-red-400 text-xs mt-1">{profileErrors.birthDate}</p>
@@ -414,8 +461,10 @@ const UserSettingsPage = () => {
                             <div className="flex justify-end pt-2">
                                 <button 
                                     type="submit" 
-                                    disabled={loading} 
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                                    disabled={loading || isDemoUser} 
+                                    className={`bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base ${
+                                        isDemoUser ? 'opacity-50 cursor-not-allowed' : ''
+                                    }`}
                                 >
                                     {loading ? 'Guardando...' : 'Guardar Cambios'}
                                 </button>
@@ -433,11 +482,14 @@ const UserSettingsPage = () => {
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 sm:p-4 bg-gray-750 rounded-lg border border-gray-600">
                             <div>
                                 <h4 className="font-semibold text-white text-sm sm:text-base">Contraseña</h4>
-                                <p className="text-gray-400 text-xs sm:text-sm">Actualiza tu contraseña regularmente</p>
+                                <p className="text-gray-400 text-xs sm:text-sm">Actualiza tu contraseña regularmente para mayor seguridad</p>
                             </div>
                             <button 
-                                onClick={() => setShowPasswordModal(true)}
-                                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base"
+                                onClick={handlePasswordChangeClick}
+                                disabled={isDemoUser}
+                                className={`w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-6 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
+                                    isDemoUser ? 'opacity-50 cursor-not-allowed' : ''
+                                }`}
                             >
                                 Cambiar Contraseña
                             </button>
@@ -593,7 +645,7 @@ const UserSettingsPage = () => {
                                         disabled={loading} 
                                         className="flex-1 py-2 sm:py-3 px-4 text-sm sm:text-base rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors order-1 sm:order-2"
                                     >
-                                        {loading ? 'Cambiando...' : 'Cambiar'}
+                                        {loading ? 'Cambiando...' : 'Cambiar Contraseña'}
                                     </button>
                                 </div>
                             </form>
