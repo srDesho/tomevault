@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -68,7 +69,7 @@ public class BookServiceImpl implements IBookService {
                 .orElseThrow(() -> new ResourceNotFoundException("Book not found or does not belong to the user."));
 
         deactivatedBook.setActive(true);
-        deactivatedBook.setAddedAt(LocalDate.now());
+        deactivatedBook.setAddedAt(LocalDate.now(ZoneId.of("UTC")));
 
         // Reset reading counter if user doesn't want to keep progress
         if (!keepProgress) {
@@ -186,7 +187,7 @@ public class BookServiceImpl implements IBookService {
             book.setAuthor("Autor desconocido");
         }
         book.setUser(user);
-        book.setAddedAt(LocalDate.now());
+        book.setAddedAt(LocalDate.now(ZoneId.of("UTC")));
         book.setActive(true);
         return bookMapper.toResponseDTO(bookRepository.save(book));
     }
