@@ -4,20 +4,29 @@ import { BACKEND_BASE_URL, getAuthHeader } from './AuthService';
 const handleResponse = async (response) => {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
+
+    // Extract errorCode
+    const errorCode = errorData.errorCode || 'unknown_error';
+    // Extract message
+    const userMessage = errorData.message || 'Error en la operación';
+
+    const error = new Error(userMessage);
+    error.errorCode = errorCode;
     
     if (response.status === 403 || response.status === 401) {
-      throw new Error('Sesión expirada');
+      error.errorCode = 'Sesión Expirada';
+      throw error;
     }
     
     if (response.status === 404) {
-      throw new Error(errorData.message || 'Recurso no encontrado');
+      throw error;
     }
     
     if (response.status === 400) {
-      throw new Error(errorData.message || 'Datos inválidos');
+      throw error;
     }
     
-    throw new Error(errorData.message || 'Error en la operación');
+    throw error;
   }
   
   if (response.status === 204) {
