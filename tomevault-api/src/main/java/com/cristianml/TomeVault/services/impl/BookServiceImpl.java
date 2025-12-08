@@ -158,14 +158,7 @@ public class BookServiceImpl implements IBookService {
     public BookResponseDTO saveBookFromGoogle(String googleBookId, UserEntity user) {
 
         // Check limit for demo user
-        if (isDemoUser(user)) {
-            long bookCount = bookRepository.countByUserAndIsActiveTrue(user);
-            if (bookCount >= 10) {
-                throw new DemoLimitExceededException(
-                  "Demo user limit reached (maximum 10 books)"
-                );
-            }
-        }
+        checkDemoUserBookLimit(user);
 
         // Check if this book was previously deleted by the user
         Optional<BookEntity> deletedBook = bookRepository.findByGoogleBookIdAndUserAndIsActiveFalse(googleBookId, user);
@@ -217,5 +210,14 @@ public class BookServiceImpl implements IBookService {
     // isDemoUser
     private boolean isDemoUser(UserEntity user) {
         return "demo@tomevault.com".equals(user.getEmail());
+    }
+
+    private void checkDemoUserBookLimit(UserEntity user) {
+        if (isDemoUser(user)) {
+            long bookCount = this.bookRepository.countByUserAndIsActiveTrue(user);
+            if (bookCount >= 10) {
+                throw new DemoLimitExceededException("Demo user limit reached (maximum 10 books)");
+            }
+        }
     }
 }
