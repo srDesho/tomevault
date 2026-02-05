@@ -73,7 +73,7 @@ public class JwtTokenValidator extends OncePerRequestFilter {
 
             // Create an Authentication object with CustomUserDetails as principal
             Authentication authentication = new UsernamePasswordAuthenticationToken(
-                    customUserDetails, // CustomUserDetails como principal
+                    customUserDetails, // CustomUserDetails as principal
                     null,
                     customUserDetails.getAuthorities()
             );

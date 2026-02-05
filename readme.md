@@ -208,6 +208,13 @@ npm run preview
 - The read counter tracks how many times you've finished a book
 - No actual book content is stored or displayed
 
+## 🔮 What's Next
+
+Currently working on:
+
+- Email verification for user registration to enhance account security
+- Manual book addition for books not available in Google Books API
+
 ## 🤝 Contributing
 
 This is a personal portfolio project, but feel free to open issues or submit pull requests.
