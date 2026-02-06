@@ -47,4 +47,8 @@ public interface BookRepository extends JpaRepository<BookEntity, Long> {
 
     List<BookEntity> findAllByUserAndIsActiveFalse(UserEntity user);
 
+    @Query("SELECT b FROM BookEntity b WHERE b.user = :user AND b.isActive = true " +
+            "AND (LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%')) " +
+            "OR LOWER(b.author) LIKE LOWER(CONCAT('%', :query, '%')))")
+    Page<BookEntity> searchUsersBooks(@Param("user") UserEntity user, @Param("query") String query, Pageable pageable);
 }

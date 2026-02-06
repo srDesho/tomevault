@@ -1,6 +1,7 @@
 // This component manages the main page displaying a user's book collection.
-// It includes features for viewing, searching, and deleting books with pagination.
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+// Features: server-side pagination, server-side search with debounce, scroll preservation
+// Optimized for Neon PostgreSQL Free Tier - loads only 21 books per page
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import BookList from '../components/books/BookList';
 import * as BookService from '../services/BookService';
 import LoadingSpinner from '../components/common/LoadingSpinner';
@@ -9,7 +10,7 @@ import { useHomeSearch } from '../context/HomeSearchContext';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/outline';
 
 const HomePage = ({ refreshBooks }) => {
-    // Access global state for search and pagination from a custom hook.
+    // Access global state for search and pagination from context
     const { 
         homeSearchTerm, 
         setHomeSearchTerm, 
@@ -23,8 +24,7 @@ const HomePage = ({ refreshBooks }) => {
         setSearchPage
     } = useHomeSearch();
     
-    // State for managing books, loading, notifications, and modals.
-    const [allBooks, setAllBooks] = useState([]);
+    // Core state management
     const [displayBooks, setDisplayBooks] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [toast, setToast] = useState(null);
@@ -33,11 +33,11 @@ const HomePage = ({ refreshBooks }) => {
     const [totalPages, setTotalPages] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
     const [scrollRestored, setScrollRestored] = useState(false);
-    const SEARCH_SIZE = 21;
+    const BOOKS_PER_PAGE = 21;
     
-    // Refs to manage component behavior across renders.
+    // Refs for behavior control
     const isInitialLoad = useRef(true);
-    const previousSearchTerm = useRef(homeSearchTerm);
+    const searchTimeoutRef = useRef(null);
 
     // Show toast notification with auto-dismiss
     const showToast = (type, message) => {
@@ -45,69 +45,96 @@ const HomePage = ({ refreshBooks }) => {
         setTimeout(() => setToast(null), 4000);
     };
 
-    // Fetches books with pagination from the service.
-    const loadBooksPaginated = useCallback(async (page = 0) => {
+    /**
+     * Loads paginated books from the server with optional search query
+     * Optimized for Neon PostgreSQL Free Tier with paginated requests
+     */
+    const loadPaginatedBooks = useCallback(async (page, searchQuery = '') => {
         setIsLoading(true);
+        
         try {
-            const response = await BookService.getMyBooks(page, SEARCH_SIZE);
+            let response;
+            
+            if (searchQuery.trim()) {
+                // Use backend search endpoint for filtered results
+                response = await BookService.searchMyBooks(
+                    searchQuery.trim(), 
+                    page, 
+                    BOOKS_PER_PAGE
+                );
+            } else {
+                // Use paginated endpoint for all active books
+                response = await BookService.getMyBooks(page, BOOKS_PER_PAGE);
+            }
+            
             setDisplayBooks(response.content || []);
-            setTotalPages(response.totalPages);
-            setTotalElements(response.totalElements);
+            setTotalPages(response.totalPages || 0);
+            setTotalElements(response.totalElements || 0);
+            
         } catch (error) {
-            // Check if it's a session expiration error
             if (error.message === 'Sesión expirada') {
-                // Interceptor will handle redirect, don't show toast
                 return;
             }
             console.error("Error loading books:", error);
+            showToast('error', 'Error al cargar libros');
             setDisplayBooks([]);
         } finally {
             setIsLoading(false);
         }
     }, []);
 
-    // Fetches all books from the service for local searching.
-    const loadAllBooksForSearch = useCallback(async () => {
-        try {
-            const allBooksData = await BookService.getAllMyBooks();
-            setAllBooks(allBooksData);
-            return allBooksData;
-        } catch (error) {
-            // Check if it's a session expiration error
-            if (error.message === 'Sesión expirada') {
-                // Interceptor will handle redirect, don't show toast
-                return [];
-            }
-            console.error("Error loading all books for search:", error);
-            setAllBooks([]);
-            return [];
-        }
+    // Initial data loading
+    useEffect(() => {
+        const loadInitial = async () => {
+            await loadPaginatedBooks(currentPage, '');
+            isInitialLoad.current = false;
+        };
+        loadInitial();
     }, []);
 
-    // Filters books based on the search term. This is memoized for performance.
-    const filteredBooks = useMemo(() => {
-        if (!homeSearchTerm.trim() || allBooks.length === 0) {
-            return [];
-        }
-
-        return allBooks.filter(book =>
-            book.title?.toLowerCase().includes(homeSearchTerm.toLowerCase()) ||
-            book.author?.toLowerCase().includes(homeSearchTerm.toLowerCase()) ||
-            (book.categories && book.categories.some(cat => 
-                cat.toLowerCase().includes(homeSearchTerm.toLowerCase())
-            ))
-        );
-    }, [allBooks, homeSearchTerm]);
-
-    // Resets the search page when the search term changes.
+    // Debounced search effect with 500ms delay to prevent excessive requests
     useEffect(() => {
-        if (!isInitialLoad.current && isSearchActive && homeSearchTerm !== previousSearchTerm.current) {
-            setSearchPage(0);
-        }
-        previousSearchTerm.current = homeSearchTerm;
-    }, [homeSearchTerm, isSearchActive, setSearchPage]);
+        if (isInitialLoad.current) return;
 
-    // Saves the current scroll position of the window.
+        if (searchTimeoutRef.current) {
+            clearTimeout(searchTimeoutRef.current);
+        }
+
+        searchTimeoutRef.current = setTimeout(() => {
+            const searchQuery = homeSearchTerm.trim();
+            
+            if (searchQuery) {
+                // Reset to first page when search term changes
+                setSearchPage(0);
+                loadPaginatedBooks(0, searchQuery);
+            } else {
+                // Load normal paginated view when search is cleared
+                loadPaginatedBooks(currentPage, '');
+            }
+        }, 500);
+
+        return () => {
+            if (searchTimeoutRef.current) {
+                clearTimeout(searchTimeoutRef.current);
+            }
+        };
+    }, [homeSearchTerm, loadPaginatedBooks, currentPage, setSearchPage]);
+
+    // Handle page change for non-search view
+    useEffect(() => {
+        if (!isInitialLoad.current && !homeSearchTerm.trim()) {
+            loadPaginatedBooks(currentPage, '');
+        }
+    }, [currentPage, homeSearchTerm, loadPaginatedBooks]);
+
+    // Handle page change for search view
+    useEffect(() => {
+        if (!isInitialLoad.current && homeSearchTerm.trim()) {
+            loadPaginatedBooks(searchPage, homeSearchTerm);
+        }
+    }, [searchPage, homeSearchTerm, loadPaginatedBooks]);
+
+    // Save scroll position during scrolling
     useEffect(() => {
         let scrollTimer;
         const handleScroll = () => {
@@ -124,68 +151,14 @@ const HomePage = ({ refreshBooks }) => {
         };
     }, [setHomeScrollPosition]);
 
-    // Handles the initial data load when the component mounts.
-    useEffect(() => {
-        const loadInitialData = async () => {
-            setIsLoading(true);
-            setScrollRestored(false);
-            
-            const allBooksData = await loadAllBooksForSearch();
-            
-            if (isSearchActive && homeSearchTerm) {
-                const start = searchPage * SEARCH_SIZE;
-                const end = start + SEARCH_SIZE;
-                const currentFilteredBooks = allBooksData.filter(book =>
-                    book.title?.toLowerCase().includes(homeSearchTerm.toLowerCase()) ||
-                    book.author?.toLowerCase().includes(homeSearchTerm.toLowerCase()) ||
-                    (book.categories && book.categories.some(cat => 
-                        cat.toLowerCase().includes(homeSearchTerm.toLowerCase())
-                    ))
-                );
-                const paginatedResults = currentFilteredBooks.slice(start, end);
-                setDisplayBooks(paginatedResults);
-                setTotalPages(Math.ceil(currentFilteredBooks.length / SEARCH_SIZE));
-                setTotalElements(currentFilteredBooks.length);
-            } else {
-                await loadBooksPaginated(currentPage);
-            }
-            
-            isInitialLoad.current = false;
-            setIsLoading(false);
-        };
-        
-        loadInitialData();
-    }, []);
-
-    // Updates the displayed books when search term, page, or other dependencies change.
-    useEffect(() => {
-        if (!isInitialLoad.current && allBooks.length > 0) {
-            if (isSearchActive && homeSearchTerm) {
-                const start = searchPage * SEARCH_SIZE;
-                const end = start + SEARCH_SIZE;
-                const paginatedResults = filteredBooks.slice(start, end);
-                setDisplayBooks(paginatedResults);
-                setTotalPages(Math.ceil(filteredBooks.length / SEARCH_SIZE));
-                setTotalElements(filteredBooks.length);
-            } else if (!isSearchActive) {
-                loadBooksPaginated(currentPage);
-            }
-        }
-    }, [
-        homeSearchTerm,
-        isSearchActive,
-        filteredBooks,
-        allBooks.length,
-        currentPage,
-        loadBooksPaginated,
-        searchPage
-    ]);
-
-    // Restores the previous scroll position after data loads.
+    // Restore previous scroll position after loading
     useEffect(() => {
         if (!isLoading && displayBooks.length > 0 && homeScrollPosition > 0 && !scrollRestored) {
             const restoreScroll = () => {
-                const targetPosition = Math.min(homeScrollPosition, document.body.scrollHeight - window.innerHeight);
+                const targetPosition = Math.min(
+                    homeScrollPosition, 
+                    document.body.scrollHeight - window.innerHeight
+                );
                 if (targetPosition >= 0) {
                     window.scrollTo({ top: targetPosition, behavior: 'instant' });
                     setScrollRestored(true);
@@ -197,43 +170,33 @@ const HomePage = ({ refreshBooks }) => {
         }
     }, [isLoading, displayBooks.length, homeScrollPosition, scrollRestored]);
 
-    // Handles the book deletion process.
+    // Handle book deletion with page reload
     const handleDelete = async (bookId) => {
         try {
             await BookService.deleteBook(bookId);
             showToast('success', 'Libro eliminado correctamente');
             
-            const updatedBooks = await loadAllBooksForSearch();
+            const currentPageNum = homeSearchTerm.trim() ? searchPage : currentPage;
+            const searchQuery = homeSearchTerm.trim();
             
-            if (isSearchActive && homeSearchTerm) {
-                const newFiltered = updatedBooks.filter(book =>
-                    book.title?.toLowerCase().includes(homeSearchTerm.toLowerCase()) ||
-                    book.author?.toLowerCase().includes(homeSearchTerm.toLowerCase()) ||
-                    (book.categories && book.categories.some(cat => 
-                        cat.toLowerCase().includes(homeSearchTerm.toLowerCase())
-                    ))
-                );
-                const totalFiltered = newFiltered.length;
-                const newTotalPages = Math.ceil(totalFiltered / SEARCH_SIZE);
-                const safePage = Math.min(searchPage, Math.max(0, newTotalPages - 1));
+            // If deleting the last book on a page, navigate to previous page
+            if (displayBooks.length === 1 && currentPageNum > 0) {
+                const newPage = Math.max(0, currentPageNum - 1);
                 
-                if (safePage !== searchPage) {
-                    setSearchPage(safePage);
+                if (searchQuery) {
+                    setSearchPage(newPage);
+                    await loadPaginatedBooks(newPage, searchQuery);
+                } else {
+                    setCurrentPage(newPage);
+                    await loadPaginatedBooks(newPage, '');
                 }
-
-                const start = safePage * SEARCH_SIZE;
-                const end = start + SEARCH_SIZE;
-                setDisplayBooks(newFiltered.slice(start, end));
-                setTotalPages(newTotalPages);
-                setTotalElements(totalFiltered);
             } else {
-                await loadBooksPaginated(currentPage);
+                // Otherwise reload current page
+                await loadPaginatedBooks(currentPageNum, searchQuery);
             }
             
         } catch (error) {
-            // Check if it's a session expiration error
             if (error.message === 'Sesión expirada') {
-                // Interceptor will handle redirect, don't show toast
                 return;
             }
             showToast('error', error.message || 'Error al eliminar el libro');
@@ -242,47 +205,46 @@ const HomePage = ({ refreshBooks }) => {
         }
     };
 
-    // Handles changing pages for both general and search views.
+    // Handle page change in pagination
     const handlePageChange = (newPage) => {
-        if (isSearchActive && homeSearchTerm) {
+        if (homeSearchTerm.trim()) {
             setSearchPage(newPage);
-            const start = newPage * SEARCH_SIZE;
-            const end = start + SEARCH_SIZE;
-            const paginatedResults = filteredBooks.slice(start, end);
-            setDisplayBooks(paginatedResults);
-            window.scrollTo(0, 0);
         } else {
             setCurrentPage(newPage);
-            loadBooksPaginated(newPage);
-            setHomeScrollPosition(0);
-            setScrollRestored(true);
-            window.scrollTo(0, 0);
         }
+        setHomeScrollPosition(0);
+        setScrollRestored(true);
+        window.scrollTo(0, 0);
     };
 
-    // Generates the text for displaying the current book count.
+    // Generate book count text for display
     const getBookCountText = () => {
-        if (isSearchActive && homeSearchTerm) {
-            const total = filteredBooks.length;
-            const start = searchPage * SEARCH_SIZE + 1;
-            const end = Math.min((searchPage + 1) * SEARCH_SIZE, total);
-            return `${start}-${end} de ${total} libros encontrados`;
+        const currentPageNum = homeSearchTerm.trim() ? searchPage : currentPage;
+        const start = currentPageNum * BOOKS_PER_PAGE + 1;
+        const end = Math.min((currentPageNum + 1) * BOOKS_PER_PAGE, totalElements);
+        
+        if (homeSearchTerm.trim()) {
+            return `${start}-${end} de ${totalElements} libros encontrados`;
         }
         return `${totalElements} libro${totalElements !== 1 ? 's' : ''}`;
     };
+
+    if (isLoading && isInitialLoad.current) {
+        return <LoadingSpinner />;
+    }
 
     return (
         <div className="w-full px-2 sm:px-4 max-w-full overflow-x-hidden">
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-4 sm:mb-6 lg:mb-8 text-center px-2 leading-tight">
                 <span className="block sm:inline break-words">Mis Libros</span>
-                {isSearchActive && homeSearchTerm && (
+                {homeSearchTerm.trim() && (
                     <span className="block text-xs sm:text-sm text-gray-400 mt-2 px-2 break-words">
                         Buscando: "{homeSearchTerm}"
                     </span>
                 )}
             </h2>
 
-            {/* Toast notification - appears in top right corner */}
+            {/* Toast notification */}
             {toast && (
                 <div className={`fixed top-20 right-4 z-50 p-4 rounded-lg shadow-2xl flex items-center gap-3 animate-slide-in max-w-md ${
                     toast.type === 'success' 
@@ -298,6 +260,7 @@ const HomePage = ({ refreshBooks }) => {
                 </div>
             )}
 
+            {/* Search input */}
             <div className="mb-4 sm:mb-6 w-full max-w-full">
                 <input
                     type="text"
@@ -316,7 +279,8 @@ const HomePage = ({ refreshBooks }) => {
                 )}
             </div>
 
-            {isLoading ? (
+            {/* Books display */}
+            {isLoading && displayBooks.length === 0 ? (
                 <LoadingSpinner />
             ) : displayBooks.length > 0 ? (
                 <>
@@ -331,19 +295,20 @@ const HomePage = ({ refreshBooks }) => {
                         }}
                     />
                     
-                    {/* Show pagination only if there's more than one page */}
+                    {/* Pagination component - using the same common Pagination component as AdminUsersPage */}
                     {totalPages > 1 && (
-                    <Pagination
-                        currentPage={isSearchActive ? searchPage : currentPage}
-                        totalPages={totalPages}
-                        onPageChange={handlePageChange}
-                        totalItems={totalElements}
-                        itemsPerPage={SEARCH_SIZE}
-                        itemName="libro"
-                    />
+                        <Pagination
+                            currentPage={homeSearchTerm.trim() ? searchPage : currentPage}
+                            totalPages={totalPages}
+                            onPageChange={handlePageChange}
+                            totalItems={totalElements}
+                            itemsPerPage={BOOKS_PER_PAGE}
+                            itemName="libro"
+                        />
                     )}
                 </>
             ) : homeSearchTerm ? (
+                /* Empty search results */
                 <div className="py-8 sm:py-12 text-center px-2">
                     <div className="bg-gray-800 p-4 sm:p-6 rounded-lg inline-block max-w-full">
                         <p className="text-gray-400 mb-3 sm:mb-4 text-sm sm:text-base break-words">
@@ -358,6 +323,7 @@ const HomePage = ({ refreshBooks }) => {
                     </div>
                 </div>
             ) : (
+                /* Empty collection */
                 <div className="py-8 sm:py-12 text-center px-2">
                     <div className="bg-gray-800 p-4 sm:p-6 rounded-lg inline-block max-w-full">
                         <p className="text-gray-400 mb-3 sm:mb-4 text-sm sm:text-base">
@@ -373,6 +339,7 @@ const HomePage = ({ refreshBooks }) => {
                 </div>
             )}
 
+            {/* Delete confirmation modal */}
             {showDeleteModal && bookToDelete && (
                 <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-3 sm:p-4 z-50">
                     <div className="bg-gray-800 p-4 sm:p-6 lg:p-8 rounded-lg shadow-2xl max-w-sm w-full text-center mx-2">

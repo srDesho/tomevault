@@ -64,12 +64,14 @@ const fetchWithRetry = async (url, options = {}, retries = 3, delay = 1000) => {
 };
 
 // Fetches a paginated list of the user's books
-export const getMyBooks = async (page = 0, size = 12) => {
+export const getMyBooks = async (page = 0, size = 21) => {
     console.log("Calling API: get paginated books");
     try {
         const response = await fetchWithRetry(
             `${BACKEND_BASE_URL}/books?page=${page}&size=${size}&sort=addedAt,desc`
         );
+
+        console.log("Respuesta de getMyBooks:", response);
         return response;
     } catch (error) {
         console.error("Error getting paginated books:", error);
@@ -78,7 +80,7 @@ export const getMyBooks = async (page = 0, size = 12) => {
 };
 
 // Fetches all of the user's books by iterating through all pages
-export const getAllMyBooks = async () => {
+/* export const getAllMyBooks = async () => {
     console.log("Calling API: get all books");
     try {
         let allBooks = [];
@@ -103,6 +105,19 @@ export const getAllMyBooks = async () => {
     } catch (error) {
         console.error("Error getting all books:", error);
         throw new Error("No se pudieron cargar todos los libros.");
+    }
+}; */
+
+// Search user's books with server-side filtering and pagination
+export const searchMyBooks = async (query, page = 0, size = 21) => {
+    console.log("Calling API: search user books with query:", query);
+    try {
+        const url = `${BACKEND_BASE_URL}/books/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}&sort=addedAt,desc`;
+        const response = await fetchWithRetry(url);
+        return response;
+    } catch (error) {
+        console.error("Error searching user books:", error);
+        throw new Error("No se pudieron buscar los libros.");
     }
 };
 

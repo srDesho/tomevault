@@ -9,7 +9,9 @@ import com.cristianml.TomeVault.services.IBookService;
 import com.cristianml.TomeVault.utilities.Utilities;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -184,4 +186,58 @@ public class BookController {
 
         return ResponseEntity.ok(response);
     }
+
+    // Search authenticated user's books with server-side filtering
+    @GetMapping("/search")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Page<BookResponseDTO>> searchMyBooks(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "21") int size,
+            @RequestParam(defaultValue = "addedAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @AuthenticationPrincipal CustomUserDetails customUserDetails ) {
+
+        // Validate query parameter
+        if (query == null || query.trim().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Build sort and pageable objects
+        Sort sort = sortDir.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        // Execute search with pagination
+        Page<BookResponseDTO> books = bookService.searchUserBooks(
+                customUserDetails.getUserEntity(),
+                query.trim(),
+                pageable
+        );
+
+        return ResponseEntity.ok(books);
+
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

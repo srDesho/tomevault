@@ -81,6 +81,12 @@ public class BookServiceImpl implements IBookService {
         return bookMapper.toResponseDTO(savedBook);
     }
 
+    @Override
+    public Page<BookResponseDTO> searchUserBooks(UserEntity user, String query, Pageable pageable) {
+        Page<BookEntity> books = this.bookRepository.searchUsersBooks(user, query, pageable);
+        return this.bookMapper.toResponseDTOPage(books);
+    }
+
     // Get a specific book from user's collection by Google Books ID
     @Override
     public BookResponseDTO getBookByGoogleIdForUser(String googleBookId, UserEntity user) {
